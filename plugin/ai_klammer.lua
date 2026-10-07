@@ -15,7 +15,7 @@ vim.api.nvim_create_autocmd("ColorScheme", {
   callback = highlights,
 })
 
-local subcommands = { "hello", "show", "hide", "reset" }
+local subcommands = { "hello", "show", "hide", "reset", "ask", "explain" }
 
 vim.api.nvim_create_user_command("Klammer", function(args)
   local name = args.fargs[1] or "hello"
@@ -23,11 +23,18 @@ vim.api.nvim_create_user_command("Klammer", function(args)
     vim.notify("Klammer: unknown subcommand " .. name, vim.log.levels.ERROR, { title = "ai-klammer" })
     return
   end
-  require("ai_klammer")[name]()
+  local rest = table.concat(vim.list_slice(args.fargs, 2), " ")
+  local range = args.range > 0 and { args.line1, args.line2 } or nil
+  require("ai_klammer")[name](rest, range)
 end, {
-  nargs = "?",
+  nargs = "*",
+  range = true,
   desc = "ai-klammer.nvim",
-  complete = function(lead)
+  complete = function(lead, line)
+    -- Only the first word is a subcommand; the rest is a question in prose.
+    if line:match("^%s*%S+%s+%S+%s") then
+      return {}
+    end
     return vim.tbl_filter(function(name)
       return vim.startswith(name, lead)
     end, subcommands)

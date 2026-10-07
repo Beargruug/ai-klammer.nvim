@@ -36,8 +36,30 @@ function M.hello()
   })
 end
 
-function M.show(mood)
-  require("ai_klammer.ui.avatar").show(mood)
+function M.show()
+  require("ai_klammer.ui.avatar").show()
+end
+
+--- Put a question to the Klammer about the code at hand. Prompts when none is given.
+--- @param question? string
+--- @param range? table { first, last }
+function M.ask(question, range)
+  if question and question ~= "" then
+    return require("ai_klammer.ai").run(question, range, M.config)
+  end
+  vim.ui.input({ prompt = "Klammer: " }, function(input)
+    if input and input ~= "" then
+      require("ai_klammer.ai").run(input, range, M.config)
+    end
+  end)
+end
+
+--- Explain the selection, or the function around the cursor when nothing is selected.
+--- @param _ string? unused, keeps the subcommand signature
+--- @param range? table { first, last }
+function M.explain(_, range)
+  local ai = require("ai_klammer.ai")
+  ai.run(ai.questions.explain, range, M.config)
 end
 
 --- Send the Klammer away until :Klammer show or the next trigger.

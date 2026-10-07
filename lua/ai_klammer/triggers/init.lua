@@ -10,16 +10,23 @@ M.checks = {
   require("ai_klammer.triggers.diagnostics"),
 }
 
-local not_yet = {
-  en = "I have no idea how to help yet. That part ships in v0.2.",
-  de = "Ich weiß noch nicht, wie ich helfen kann. Das kommt in v0.2.",
-}
-
 local group = vim.api.nvim_create_augroup("AiKlammer", { clear = true })
 local debounce
 
 function M.ignored(buf, config)
   return vim.bo[buf].buftype ~= "" or vim.tbl_contains(config.ignore_filetypes, vim.bo[buf].filetype)
+end
+
+--- The diagnostics the Klammer counted are not in the code it sends, so spell them out.
+local function question(trigger)
+  local ai = require("ai_klammer.ai")
+  if trigger ~= "diagnostics" then
+    return ai.questions[trigger]
+  end
+  local messages = vim.tbl_map(function(diagnostic)
+    return "- " .. diagnostic.message
+  end, vim.diagnostic.get(0, { severity = vim.diagnostic.severity.ERROR }))
+  return ai.questions.diagnostics .. "\n" .. table.concat(messages, "\n")
 end
 
 function M.fire(trigger, count, config)
@@ -29,7 +36,7 @@ function M.fire(trigger, count, config)
     mood = "thinking",
     buttons = true,
     on_yes = function()
-      bubble.show(not_yet[config.language] or not_yet.en, { language = config.language })
+      require("ai_klammer.ai").run(question(trigger), nil, config)
     end,
     on_never = function()
       state.set_never(trigger)

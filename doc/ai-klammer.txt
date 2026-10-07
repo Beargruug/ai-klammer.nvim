@@ -8,8 +8,9 @@ CONTENTS                                                  *ai-klammer-contents*
   3. Configuration ........................ |ai-klammer-configuration|
   4. Commands ............................. |ai-klammer-commands|
   5. Triggers ............................. |ai-klammer-triggers|
-  6. Highlights ........................... |ai-klammer-highlights|
-  7. State ................................ |ai-klammer-state|
+  6. Asking ............................... |ai-klammer-asking|
+  7. Highlights ........................... |ai-klammer-highlights|
+  8. State ................................ |ai-klammer-state|
 
 ==============================================================================
 1. INTRODUCTION                                       *ai-klammer-introduction*
@@ -21,9 +22,13 @@ seconds, then stays there, blinking, until you send it away with |:Klammer|
 
 The greeting never takes your cursor, so you can keep typing through it.
 
+Since v0.2 it can also read your code and say something about it, see
+|ai-klammer-asking|.
+
 Fan homage, not affiliated with Microsoft.
 
-Requires Neovim 0.10+.
+Requires Neovim 0.10+, plus the `claude` CLI or an Anthropic API key and
+`curl` for anything AI.
 
 ==============================================================================
 2. INSTALLATION                                       *ai-klammer-installation*
@@ -46,6 +51,16 @@ With lazy.nvim: >lua
                          "gitcommit", "TelescopePrompt", "ai_klammer" },
     git_lines = 300,
     diagnostics_count = 5,
+    ai = {
+      provider = "claude",
+      model = nil,
+      url = nil,
+      api_key = nil,
+      max_tokens = 1024,
+      system = "You are the Klammer, ...",
+      context_lines = 30,
+      max_lines = 400,
+    },
   })
 <
 annoyance ~
@@ -69,6 +84,46 @@ git_lines ~
 diagnostics_count ~
     Buffer errors before the diagnostics quip fires.
 
+ai.provider ~
+    Either the name of a module under `ai_klammer.providers.*` or your own
+    table, see |ai-klammer-providers|. These ship:
+
+        claude      the `claude` CLI, uses your Claude Code sign-in (default)
+        anthropic   the Anthropic API, needs a key and `curl`
+
+    openai lands in v0.3.
+
+ai.model ~
+    Model handed to the provider. `nil` takes the provider's default:
+    "sonnet" for claude, "claude-sonnet-4-5" for anthropic.
+
+ai.url ~
+    Base URL, no trailing slash. `nil` lets the provider use its own,
+    `https://api.anthropic.com` for anthropic. Set it to reach a proxy or a
+    remote box. The claude provider ignores it; it runs a command, not a
+    request.
+
+ai.api_key ~
+    Only the anthropic provider reads this, and `nil` reads
+    `ANTHROPIC_API_KEY`. A function is called once per request, so the key can
+    come out of a password manager and never touch your config. A plain string
+    works and |:checkhealth| will tell you it is a bad idea. The claude
+    provider needs none of this; it uses your existing sign-in.
+
+ai.max_tokens ~
+    Upper bound on the answer. Only the anthropic provider needs it.
+
+ai.system ~
+    The system prompt, so the Klammer's manners are yours to change. The
+    answer language is appended from `language`.
+
+ai.context_lines ~
+    Lines above and below the cursor when there is no selection and no
+    enclosing function.
+
+ai.max_lines ~
+    The Klammer refuses to read a bigger range than this in one go.
+
 ==============================================================================
 4. COMMANDS                                               *ai-klammer-commands*
 
@@ -77,6 +132,10 @@ diagnostics_count ~
 :Klammer show           Bring the Klammer back.
 :Klammer hide           Send the Klammer away for this session.
 :Klammer reset          Forget every "never again" and reset the cooldown.
+:[range]Klammer explain Explain the range, or the function around the cursor,
+                        or the lines nearby. See |ai-klammer-asking|.
+:[range]Klammer ask {q} Ask {q} about the same code. Without {q} it asks you
+                        first through |vim.ui.input()|.
 
 In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger,
 `q` or `<Esc>` to dismiss. Answering closes the bubble; the Klammer stays in
@@ -103,7 +162,84 @@ diagnostics ~
     |CursorHold| and |BufWritePost|. Fires at `diagnostics_count` errors.
 
 ==============================================================================
-6. HIGHLIGHTS                                           *ai-klammer-highlights*
+6. ASKING                                                   *ai-klammer-asking*
+
+What gets sent, in order:
+
+    1. the |[range]| given to the command, so in visual mode `:Klammer explain`
+       becomes `:'<,'>Klammer explain` and sends the selection
+    2. the innermost function, method or class around the cursor, found with
+       |treesitter|
+    3. `ai.context_lines` above and below the cursor
+
+An empty range or one longer than `ai.max_lines` gets a remark instead of a
+request. A handy pair of maps: >lua
+
+  vim.keymap.set({ "n", "v" }, "<leader>ke", ":Klammer explain<CR>",
+    { silent = true })
+  vim.keymap.set({ "n", "v" }, "<leader>ka", ":Klammer ask ", {})
+<
+The answer streams into the bubble as it arrives and the bubble grows with it,
+capped at the window height. `q` or `<Esc>` closes the bubble and kills the
+request, so a rambling model costs nothing.
+
+Saying `y` to a trigger asks the model about what the trigger found. For the
+diagnostics trigger the error messages are sent along with the code.
+
+Run |:checkhealth| `ai_klammer` to see whether the server answers and whether
+the model is pulled.
+
+                                                        *ai-klammer-anthropic*
+Claude ~
+
+Through the `claude` CLI, if Claude Code is installed and signed in. This is
+the default: no API key, it runs on your existing subscription: >lua
+
+  require("ai_klammer").setup({})
+<
+That is all of it. The Klammer runs `claude --print` with its own system
+prompt in place of Claude Code's, and with the file, shell and agent tools
+switched off, so you get an answer and no surprises. `ai.model` takes the CLI
+aliases ("sonnet", "opus", "haiku") or a full model name.
+
+Through the API instead, with `ANTHROPIC_API_KEY` exported: >lua
+
+  require("ai_klammer").setup({ ai = { provider = "anthropic" } })
+<
+or with the key fetched on demand: >lua
+
+  ai = {
+    provider = "anthropic",
+    api_key = function()
+      return vim.trim(vim.fn.system({ "op", "read", "op://Private/claude" }))
+    end,
+  }
+<
+Either way the selected code leaves your machine when you ask a question.
+Configuring it is the consent; the Klammer will not ask again every time.
+
+                                                        *ai-klammer-providers*
+Bringing your own ~
+
+A provider is any table with a `stream` function, so which AI you use is your
+decision and the Klammer never needs to know: >lua
+
+  require("ai_klammer").setup({
+    ai = { provider = { stream = function(messages, config, on_chunk, on_done)
+      -- messages  { { role = "system"|"user", content = string }, ... }
+      -- config    the resolved config, ai.model and ai.url included
+      -- on_chunk  fun(text) appends to the bubble, safe from any thread
+      -- on_done   fun(err|nil)
+      -- return    anything with :kill(), or nil if it cannot be cancelled
+    end } },
+  })
+<
+`on_chunk` and `on_done` are already wrapped in |vim.schedule()|, so a libuv
+callback can call them directly. A table without a `stream` function is
+rejected in |ai_klammer.setup()|, not at the first question.
+
+==============================================================================
+7. HIGHLIGHTS                                           *ai-klammer-highlights*
 
 All are linked with `default`, so a colorscheme can override them.
 
@@ -112,7 +248,7 @@ All are linked with `default`, so a colorscheme can override them.
     AiKlammerButton     the button row      (Question)
 
 ==============================================================================
-7. STATE                                                     *ai-klammer-state*
+8. STATE                                                     *ai-klammer-state*
 
 "Never again" choices are stored as JSON in
 `stdpath("data") .. "/ai_klammer.json"`. Delete the file or run

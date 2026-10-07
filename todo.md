@@ -1,4 +1,4 @@
-Hier ist die überarbeitete Aufgabenliste mit dem neuen Namen. Repo heißt ai-klammer.nvim, das Lua-Modul ai_klammer, der Befehl bleibt kurz :Klammer. Die übrigen Annahmen von vorher gelten weiter: Neovim 0.10, Soloprojekt in der Freizeit, englisches README, Ollama als Standard.
+Hier ist die überarbeitete Aufgabenliste mit dem neuen Namen. Repo heißt ai-klammer.nvim, das Lua-Modul ai_klammer, der Befehl bleibt kurz :Klammer. Die übrigen Annahmen von vorher gelten weiter: Neovim 0.10, Soloprojekt in der Freizeit, englisches README, die claude-CLI als Standard.
 
 Projektstruktur
 ai-klammer.nvim/
@@ -12,7 +12,7 @@ ai-klammer.nvim/
 │   ├── triggers/  (init.lua, git.lua, regex.lua, diagnostics.lua)
 │   ├── quips/     (de.lua, en.lua)
 │   ├── context/   (buffer.lua, search.lua, lsp.lua)
-│   └── providers/ (init.lua, ollama.lua, openai.lua, anthropic.lua)
+│   └── providers/ (claude.lua, anthropic.lua, openai.lua)
 ├── doc/ai-klammer.txt
 └── tests/
 Phase 0: Fundament (ca. 1 Abend)
@@ -61,23 +61,34 @@ Qualität und Release
 lua
   { "deinname/ai-klammer.nvim", opts = { annoyance = 2 } }
  Tag v0.1.0 setzen und auf r/neovim posten
-Phase 2: KI-Anbindung, v0.2 (ca. 2 Wochen)
- providers/init.lua: Interface stream(messages, opts, on_chunk, on_done)
- providers/ollama.lua mit NDJSON-Streaming
- Sprechblase wächst beim Streamen mit, <Esc> bricht über :kill() ab
- context/buffer.lua: Visual-Auswahl oder ±30 Zeilen um den Cursor
- :Klammer ask (per vim.ui.input) und :Klammer explain (Visual Mode)
- System-Prompt mit Persönlichkeit, konfigurierbar
- Trigger-Button „Ja“ startet die passende KI-Analyse
- Healthcheck erweitern: Ollama erreichbar, Modell vorhanden?
- Freundliche Fehlermeldung im Klammer-Ton, wenn kein Provider läuft
+Phase 2: KI-Anbindung, v0.2 (ca. 2 Wochen) — erledigt
+ [ ] providers/ollama.lua — gestrichen, lokale Modelle sind hier nicht gewollt. Wieder aufnehmen, falls jemand danach fragt.
+ [x] ai.provider nimmt einen Modulnamen oder eine eigene Tabelle mit stream(), eigene Provider also direkt aus der Plugin-Config
+ [ ] providers/init.lua mit Interface — übersprungen, ai.resolve() ist der ganze Vertrag. Kommt mit dem zweiten gebündelten Provider in Phase 3.
+ [x] Sprechblase wächst beim Streamen mit, <Esc> bricht über :kill() ab
+ [x] context/buffer.lua: Visual-Auswahl, sonst umschließende Funktion, sonst ±30 Zeilen um den Cursor
+ [x] Umschließende Funktion über vim.treesitter, Fallback auf ±30 Zeilen wenn kein Parser da ist
+ [x] :Klammer als range-Befehl registrieren, damit :'<,'>Klammer explain direkt funktioniert
+ [x] :Klammer ask (per vim.ui.input) und :Klammer explain: markierte Funktion erklären
+ [x] Keymap-Vorschlag im README, z. B. visual <leader>ke auf :Klammer explain
+ [x] Erklärung streamt in die Sprechblase, Dateiname, Filetype und Zeilenbereich in den Prompt
+ [x] Leere Auswahl oder zu großer Block (Default ca. 400 Zeilen): Klammer-Spruch statt Request
+ [x] System-Prompt mit Persönlichkeit, konfigurierbar über ai.system
+ [x] Trigger-Button „Ja“ startet die passende KI-Analyse, Diagnostics schicken die Fehlertexte mit
+ [x] Healthcheck erweitern: Provider ladbar, Kommando auf dem PATH, API-Key vorhanden
+ [x] Freundliche Fehlermeldung im Klammer-Ton, wenn kein Provider läuft
+ [x] tests/test_ai.lua: NDJSON-Parser, Kontextauswahl, mitwachsende Sprechblase
 Phase 3: Weitere Provider, v0.3 (ca. 1–2 Wochen)
- Gemeinsamen SSE-Parser schreiben
- providers/openai.lua mit konfigurierbarer base_url für kompatible APIs
- providers/anthropic.lua
- API-Keys nur aus Umgebungsvariable oder Funktion, Healthcheck warnt bei Klartext-Keys
- Bestätigung vor dem ersten Senden an einen Cloud-Provider
- Persönlichkeitsmodi herablassend, hilfsbereit, passiv-aggressiv
+ [x] providers/anthropic.lua mit SSE-Streaming, vorgezogen
+ [x] providers/claude.lua über die claude-CLI, nutzt das vorhandene Claude-Code-Login, kein API-Key
+ [x] API-Keys aus Umgebungsvariable oder Funktion, Healthcheck warnt bei Klartext-Keys
+ [x] ai.url und ai.model sind optional, jeder Provider kennt seine eigenen Defaults
+ [x] Healthcheck prüft provider.command auf dem PATH, nicht mehr curl fest verdrahtet
+ [ ] providers/openai.lua mit konfigurierbarer base_url für kompatible APIs
+ [ ] Gemeinsamen SSE-Parser aus anthropic.lua herausziehen, sobald openai.lua ihn auch braucht
+ [ ] Bestätigung vor dem ersten Senden an einen Cloud-Provider — bewusst offen, die Konfiguration ist die Zustimmung. Nachziehen, wenn sich jemand überrumpelt fühlt.
+ [ ] API-Key liegt in argv und ist in `ps` sichtbar, siehe ponytail-Kommentar in anthropic.lua
+ [ ] Persönlichkeitsmodi herablassend, hilfsbereit, passiv-aggressiv
 Phase 4: Projektkontext, v0.4 (ca. 2–3 Wochen)
  context/search.lua: Schlüsselwörter extrahieren, rg --json, Treffer ranken
  Token-Budget, Default ca. 6000 Tokens
@@ -85,7 +96,7 @@ Phase 4: Projektkontext, v0.4 (ca. 2–3 Wochen)
  context/lsp.lua: Dokumentsymbole und Diagnostics
  Blockliste für sensible Dateien (.env, *.pem, *secret*, *.key), standardmäßig aktiv
  :Klammer project <Frage>
- Optional: Embeddings über Ollama, Cache in stdpath("cache") .. "/ai_klammer/"
+ Optional: Embeddings, Cache in stdpath("cache") .. "/ai_klammer/"
 Daueraufgaben
  Nach jedem Release ein neues GIF für das neue Feature
  Spruchvorschläge der Community über Issues annehmen

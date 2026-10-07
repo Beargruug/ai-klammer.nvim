@@ -31,8 +31,46 @@ local function wrap(text, width)
   return lines
 end
 
+--- Geometry for the given lines: bottom-right, above the Klammer, never off-screen.
+local function float(lines)
+  local width = 1
+  for _, line in ipairs(lines) do
+    width = math.max(width, vim.fn.strdisplaywidth(line))
+  end
+  local anchor = avatar.anchor()
+  local height = math.max(1, math.min(#lines, anchor.row - 2))
+  return {
+    relative = "editor",
+    row = math.max(0, anchor.row - height - 2),
+    col = math.max(0, vim.o.columns - width - 3),
+    width = width,
+    height = height,
+    style = "minimal",
+    border = "rounded",
+    zindex = 60,
+  }
+end
+
+local function write(lines)
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+end
+
 function M.is_open()
   return win ~= nil and vim.api.nvim_win_is_valid(win)
+end
+
+--- Replace the open bubble's text and regrow it. Used while an answer streams in.
+function M.update(text)
+  if not M.is_open() then
+    return
+  end
+  local lines = wrap(text, MAX_WIDTH)
+  write(lines)
+  vim.api.nvim_win_set_config(win, float(lines))
+  -- The window caps out at screen height, so keep the newest line in view.
+  vim.api.nvim_win_set_cursor(win, { #lines, 0 })
 end
 
 function M.close()
@@ -63,32 +101,16 @@ function M.show(text, opts)
     lines[#lines + 1] = keys.line
   end
 
-  local width = 0
-  for _, line in ipairs(lines) do
-    width = math.max(width, vim.fn.strdisplaywidth(line))
-  end
-
   buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].filetype = "markdown"
-  vim.bo[buf].modifiable = false
+  write(lines)
   if buttons then
     vim.api.nvim_buf_set_extmark(buf, ns, #lines - 1, 0, { line_hl_group = "AiKlammerButton" })
   end
 
-  local anchor = avatar.anchor()
   local focus = opts.focus ~= false
   prev_win = focus and vim.api.nvim_get_current_win() or nil
-  win = vim.api.nvim_open_win(buf, focus, {
-    relative = "editor",
-    row = math.max(0, anchor.row - #lines - 2),
-    col = math.max(0, vim.o.columns - width - 3),
-    width = width,
-    height = #lines,
-    style = "minimal",
-    border = "rounded",
-    zindex = 60,
-  })
+  win = vim.api.nvim_open_win(buf, focus, float(lines))
   vim.wo[win].winhighlight = "NormalFloat:AiKlammerBubble,FloatBorder:AiKlammerBubble"
   avatar.show(opts.mood or "neutral")
 
