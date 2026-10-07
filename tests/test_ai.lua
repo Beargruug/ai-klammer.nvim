@@ -22,10 +22,11 @@ assert(events[1].done and events[1].content == "", "message_stop ends it without
 events = anthropic.parse('{"type":"error","error":{"type":"not_found_error","message":"model: nope"}}\n')
 assert(events[1].error == "model: nope", "a rejected request is not SSE and still has to come through")
 
-assert(
-  anthropic.key({ ai = { api_key = function() return "from-a-function" end } }) == "from-a-function",
-  "a function key is called, so secrets can stay out of the config"
-)
+assert(anthropic.key({ ai = {
+  api_key = function()
+    return "from-a-function"
+  end,
+} }) == "from-a-function", "a function key is called, so secrets can stay out of the config")
 
 -- The claude CLI prints NDJSON and hides failures in the last line, not the exit code.
 local claude = require("ai_klammer.providers.claude")

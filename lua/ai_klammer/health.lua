@@ -38,7 +38,6 @@ function M.provider(config)
   end
 end
 
-
 function M.check()
   vim.health.start("ai-klammer.nvim")
 
