@@ -1,0 +1,124 @@
+*ai-klammer.txt*  An ASCII paperclip with opinions about your code
+
+==============================================================================
+CONTENTS                                                  *ai-klammer-contents*
+
+  1. Introduction ......................... |ai-klammer-introduction|
+  2. Installation ......................... |ai-klammer-installation|
+  3. Configuration ........................ |ai-klammer-configuration|
+  4. Commands ............................. |ai-klammer-commands|
+  5. Triggers ............................. |ai-klammer-triggers|
+  6. Highlights ........................... |ai-klammer-highlights|
+  7. State ................................ |ai-klammer-state|
+
+==============================================================================
+1. INTRODUCTION                                       *ai-klammer-introduction*
+
+ai-klammer.nvim puts an ASCII paperclip in the bottom-right corner of your
+editor. It shows up when Neovim starts with a greeting that fades after three
+seconds, then stays there, blinking, until you send it away with |:Klammer|
+`hide`. It watches for a few situations, says something, and offers to help.
+
+The greeting never takes your cursor, so you can keep typing through it.
+
+Fan homage, not affiliated with Microsoft.
+
+Requires Neovim 0.10+.
+
+==============================================================================
+2. INSTALLATION                                       *ai-klammer-installation*
+
+With lazy.nvim: >lua
+
+  { "Beargruug/ai-klammer.nvim", opts = { annoyance = 2 } }
+<
+`opts` runs |ai_klammer.setup()|. Without it the Klammer stays quiet.
+
+==============================================================================
+3. CONFIGURATION                                     *ai-klammer-configuration*
+
+                                                          *ai_klammer.setup()*
+>lua
+  require("ai_klammer").setup({
+    annoyance = 2,
+    language = nil,
+    ignore_filetypes = { "help", "qf", "netrw", "oil", "lazy", "mason",
+                         "gitcommit", "TelescopePrompt", "ai_klammer" },
+    git_lines = 300,
+    diagnostics_count = 5,
+  })
+<
+annoyance ~
+    0 to 3. Sets the minimum gap between quips:
+
+        0   silent, no autocmds, no greeting, no paperclip
+        1   15 minutes
+        2   5 minutes
+        3   1 minute
+
+language ~
+    "en" or "de". `nil` reads |v:lang|.
+
+ignore_filetypes ~
+    Filetypes the Klammer stays out of. Special buffers (|'buftype'| set) are
+    always skipped.
+
+git_lines ~
+    Changed lines against HEAD before the big-diff quip fires.
+
+diagnostics_count ~
+    Buffer errors before the diagnostics quip fires.
+
+==============================================================================
+4. COMMANDS                                               *ai-klammer-commands*
+
+                                                                    *:Klammer*
+:Klammer [hello]        Greet, with a bubble.
+:Klammer show           Bring the Klammer back.
+:Klammer hide           Send the Klammer away for this session.
+:Klammer reset          Forget every "never again" and reset the cooldown.
+
+In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger,
+`q` or `<Esc>` to dismiss. Answering closes the bubble; the Klammer stays in
+the corner and goes back to its neutral face.
+
+After `:Klammer hide` the next trigger brings it back. Set `annoyance = 0` for
+real silence.
+
+==============================================================================
+5. TRIGGERS                                               *ai-klammer-triggers*
+
+All triggers share one cooldown and respect "never again" individually. The
+startup greeting is not a trigger: no buttons, no cooldown, no silencing.
+
+regex ~
+    |CursorHold|. A string or /slash/ literal on the cursor line with four or
+    more regex metacharacters.
+
+git ~
+    |BufWritePost|. `git diff --shortstat HEAD` in the file's directory,
+    run asynchronously. Fires above `git_lines` changed lines.
+
+diagnostics ~
+    |CursorHold| and |BufWritePost|. Fires at `diagnostics_count` errors.
+
+==============================================================================
+6. HIGHLIGHTS                                           *ai-klammer-highlights*
+
+All are linked with `default`, so a colorscheme can override them.
+
+    AiKlammerAvatar     the paperclip       (Comment)
+    AiKlammerBubble     bubble and border   (NormalFloat)
+    AiKlammerButton     the button row      (Question)
+
+==============================================================================
+7. STATE                                                     *ai-klammer-state*
+
+"Never again" choices are stored as JSON in
+`stdpath("data") .. "/ai_klammer.json"`. Delete the file or run
+`:Klammer reset` to start over. The cooldown lives in memory and resets with
+Neovim.
+
+Run |:checkhealth| `ai_klammer` to see the active config and the state file.
+
+vim:tw=78:ts=8:ft=help:norl:

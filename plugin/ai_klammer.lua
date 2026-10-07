@@ -3,26 +3,33 @@ if vim.g.loaded_ai_klammer then
 end
 vim.g.loaded_ai_klammer = true
 
-local subcommands = {
-  hello = function()
-    require("ai_klammer").hello()
-  end,
-}
+local function highlights()
+  vim.api.nvim_set_hl(0, "AiKlammerAvatar", { link = "Comment", default = true })
+  vim.api.nvim_set_hl(0, "AiKlammerBubble", { link = "NormalFloat", default = true })
+  vim.api.nvim_set_hl(0, "AiKlammerButton", { link = "Question", default = true })
+end
+
+highlights()
+vim.api.nvim_create_autocmd("ColorScheme", {
+  group = vim.api.nvim_create_augroup("AiKlammerHighlights", { clear = true }),
+  callback = highlights,
+})
+
+local subcommands = { "hello", "show", "hide", "reset" }
 
 vim.api.nvim_create_user_command("Klammer", function(args)
   local name = args.fargs[1] or "hello"
-  local run = subcommands[name]
-  if not run then
+  if not vim.tbl_contains(subcommands, name) then
     vim.notify("Klammer: unknown subcommand " .. name, vim.log.levels.ERROR, { title = "ai-klammer" })
     return
   end
-  run()
+  require("ai_klammer")[name]()
 end, {
   nargs = "?",
   desc = "ai-klammer.nvim",
   complete = function(lead)
     return vim.tbl_filter(function(name)
       return vim.startswith(name, lead)
-    end, vim.tbl_keys(subcommands))
+    end, subcommands)
   end,
 })
