@@ -16,7 +16,7 @@ Status: Phase 0. It says hello. That is all it does.
 [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
-{ "deinname/ai-klammer.nvim", opts = { annoyance = 2 } }
+{ "Beargruug/ai-klammer.nvim", opts = { annoyance = 2 } }
 ```
 
 Local development:
