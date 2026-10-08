@@ -30,6 +30,61 @@ function M.key(provider, config)
   return source or os.getenv(provider.env)
 end
 
+--- Headers in a file curl reads at startup, instead of in argv where `ps`
+--- shows them to every process on the machine. Nvim's tempdir is already
+--- 0700; the file is 0600 on top of that and deleted when the request ends.
+--- @return string path
+local function header_file(headers)
+  local path = vim.fn.tempname()
+  vim.fn.writefile(
+    vim.tbl_map(function(header)
+      return ('header = "%s"'):format(header:gsub("\\", "\\\\"):gsub('"', '\\"'))
+    end, headers),
+    path
+  )
+  vim.uv.fs_chmod(path, tonumber("600", 8))
+  return path
+end
+
+--- Keep a secret from riding out inside an error message.
+local function scrubbed(on_done, secret)
+  if not secret or secret == "" then
+    return on_done
+  end
+  return function(err)
+    on_done(err and (err:gsub(vim.pesc(secret), "[redacted]")))
+  end
+end
+
+--- POST to a streaming JSON API with curl.
+--- @param request table { url, headers, body, parse, secret }
+--- @return table the vim.system handle
+function M.curl(request, on_chunk, on_done)
+  local headers = header_file(request.headers)
+  local done = scrubbed(on_done, request.secret)
+  return M.run(
+    {
+      "curl",
+      "-sS",
+      "--no-buffer",
+      "-X",
+      "POST",
+      request.url,
+      "--config",
+      headers,
+      "--data-binary",
+      "@-",
+    },
+    request.body,
+    request.parse,
+    on_chunk,
+    function(err)
+      os.remove(headers)
+      done(err)
+    end
+  )
+end
+
 --- Pump a streaming subprocess: gather stdout, hand whole lines to the
 --- provider's parse, forward the text, keep the first failure. Both APIs and
 --- the CLI report errors inside the stream as often as in the exit code.

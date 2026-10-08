@@ -23,9 +23,16 @@ end
 --- Selection first, then the enclosing function, then whatever is near the cursor.
 --- @param range? table { first, last } from a command range
 --- @return table|nil context { text, first, last, name, filetype, source }
---- @return string|nil reason "empty" or "too_big", with the line count
+--- @return string|nil reason "blocked", "empty" or "too_big", with the line count
 --- @return number|nil count
 function M.grab(buf, range, config)
+  -- Every question about code routes through here, so this is the one place
+  -- the blocklist has to hold. "blocked" is answered with silence upstream.
+  local path = vim.api.nvim_buf_get_name(buf)
+  if require("ai_klammer.context.secrets").blocked(path, config) then
+    return nil, "blocked"
+  end
+
   local first, last, source
   if range then
     first, last, source = range[1], range[2], "selection"
@@ -49,13 +56,15 @@ function M.grab(buf, range, config)
   if vim.trim(text) == "" then
     return nil, "empty"
   end
+  if config.ai.redact then
+    text = require("ai_klammer.context.secrets").redact(text)
+  end
 
-  local name = vim.api.nvim_buf_get_name(buf)
   return {
     text = text,
     first = first,
     last = last,
-    name = name ~= "" and vim.fn.fnamemodify(name, ":.") or "an unsaved buffer",
+    name = path ~= "" and vim.fn.fnamemodify(path, ":.") or "an unsaved buffer",
     filetype = vim.bo[buf].filetype,
     source = source,
   }

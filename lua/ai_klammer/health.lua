@@ -38,6 +38,33 @@ function M.provider(config)
   end
 end
 
+--- The Klammer is deliberately silent in a blocklisted file, which makes
+--- "why does nothing happen here" impossible to diagnose without this.
+function M.privacy(config, state)
+  local consent = config.ai.consent
+  if consent == nil then
+    consent = state.consent()
+  end
+  if consent == false then
+    vim.health.warn("you said never: no code is sent and the AI features stay off until :Klammer reset")
+  elseif consent == true then
+    vim.health.ok("sending your code is allowed; :Klammer reset to take it back")
+  else
+    vim.health.info("the Klammer will ask once before it sends anything")
+  end
+
+  vim.health.info(
+    ("%d blocklist globs, redaction %s"):format(
+      #config.ai.blocklist,
+      config.ai.redact and "on" or "off, keys in your code will be sent as they are"
+    )
+  )
+  local name = vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf())
+  if require("ai_klammer.context.secrets").blocked(name, config) then
+    vim.health.warn("this buffer is blocklisted, so the Klammer ignores it on purpose")
+  end
+end
+
 function M.check()
   vim.health.start("ai-klammer.nvim")
 
@@ -67,6 +94,8 @@ function M.check()
   end
 
   local state = require("ai_klammer.state")
+  M.privacy(config, state)
+
   vim.health.info("state file: " .. state.path)
   local silenced = state.silenced()
   if #silenced > 0 then

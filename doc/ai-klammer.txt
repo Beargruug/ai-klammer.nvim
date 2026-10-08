@@ -60,6 +60,9 @@ With lazy.nvim: >lua
       system = "You are the Klammer, ...",
       context_lines = 30,
       max_lines = 400,
+      blocklist = { ".env", "*.pem", "*secret*", ... },
+      redact = true,
+      consent = nil,
     },
   })
 <
@@ -125,6 +128,21 @@ ai.context_lines ~
 
 ai.max_lines ~
     The Klammer refuses to read a bigger range than this in one go.
+
+ai.blocklist ~
+    Globs for files the Klammer never reads and never mentions, see
+    |ai-klammer-privacy|. A glob without a slash is matched against the file
+    name, one with a slash against the whole path. Setting this replaces the
+    default list rather than adding to it.
+
+ai.redact ~
+    Strip recognisable credentials out of the code before it is sent. On by
+    default. See |ai-klammer-privacy|.
+
+ai.consent ~
+    `nil` asks once, before the very first request, and remembers the answer
+    in the state file. `true` accepts up front, for a config that must never
+    prompt. See |ai-klammer-privacy|.
 
 ==============================================================================
 4. COMMANDS                                               *ai-klammer-commands*
@@ -245,6 +263,44 @@ Pointed somewhere else, base URL including the version segment: >lua
   -- llama.cpp or LM Studio, where the key is ignored but must not be empty
   ai = { provider = "openai", url = "http://127.0.0.1:1234/v1", api_key = "none" }
 <
+                                                          *ai-klammer-privacy*
+What it will not send ~
+
+The Klammer talks to a model, so your code leaves your machine when you ask
+it something. Three things limit that, all on by default.
+
+It asks once ~
+    Before the very first request, the Klammer asks whether your code may be
+    sent and remembers the answer. `Ne[v]er again` turns the AI features off
+    for good; |:Klammer| `reset` brings them back. `ai.consent = true` skips
+    the question for a config that must never prompt.
+
+It never reads certain files ~
+    Anything matching `ai.blocklist` is refused: by |:Klammer| `explain` and
+    `ask`, and by the triggers, so no bubble ever appears in such a file
+    offering to help. The default list covers `.env`, `.env.*`, `*.pem`,
+    `*.key`, `*.p12`, `*.pfx`, `*.kdbx`, `*.tfvars`, `*secret*`,
+    `*credential*`, `id_rsa*`, `id_ecdsa*`, `id_ed25519*`, `.netrc`,
+    `.npmrc`, `.pypirc`, `.htpasswd`, and the `.ssh`, `.aws` and `.gnupg`
+    directories.
+
+    The refusal is silent on purpose. A Klammer that pipes up with "I will
+    not read that" tells anyone looking at your screen that the file is worth
+    reading.
+
+It strips keys out of what it does send ~
+    With `ai.redact`, recognisable credentials are removed from the code
+    first: private key blocks, `sk-...`, `ghp_...`, `AKIA...`, `xox...`, JWTs,
+    and `password = "..."`-style assignments whose value is long enough to be
+    real. Known prefixes only, never an entropy guess, because a false
+    positive would quietly mangle the code you asked about.
+
+API keys reach `curl` through a `0600` file rather than the command line, so
+they do not appear in `ps`.
+
+None of this makes it safe to point the Klammer at a machine full of other
+people's secrets. It narrows the obvious accidents.
+
                                                         *ai-klammer-providers*
 Bringing your own ~
 

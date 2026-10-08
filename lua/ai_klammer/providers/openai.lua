@@ -48,22 +48,16 @@ function M.stream(messages, config, on_chunk, on_done)
     stream = true,
   })
 
-  -- ponytail: the key rides in argv, so it shows up in `ps` for this user.
-  -- Move it into a 0600 curl --config file if that ever matters.
-  return shared.run({
-    M.command,
-    "-sS",
-    "--no-buffer",
-    "-X",
-    "POST",
-    (config.ai.url or M.url) .. "/chat/completions",
-    "-H",
-    "content-type: application/json",
-    "-H",
-    "authorization: Bearer " .. key,
-    "--data-binary",
-    "@-",
-  }, body, M.parse, on_chunk, on_done)
+  return shared.curl({
+    url = (config.ai.url or M.url) .. "/chat/completions",
+    headers = {
+      "content-type: application/json",
+      "authorization: Bearer " .. key,
+    },
+    body = body,
+    parse = M.parse,
+    secret = key,
+  }, on_chunk, on_done)
 end
 
 return M

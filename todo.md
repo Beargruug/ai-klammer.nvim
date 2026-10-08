@@ -87,18 +87,28 @@ Phase 3: Weitere Provider, v0.3 (ca. 1–2 Wochen) — erledigt
  [x] providers/openai.lua mit konfigurierbarer base_url für kompatible APIs — deckt OpenAI, Groq, OpenRouter, llama.cpp und LM Studio ab
  [x] Gemeinsamen SSE-Parser aus anthropic.lua herausziehen, sobald openai.lua ihn auch braucht — providers/shared.lua, mit openai.lua als zweitem Aufrufer fällig geworden. Enthält auch Key-Lookup und den Subprozess-Pump, die alle drei Provider teilen.
  [ ] providers/init.lua mit Interface — bleibt übersprungen, auch mit drei Providern reicht ai.resolve() plus shared.lua
- [ ] Bestätigung vor dem ersten Senden an einen Cloud-Provider — vertagt auf Phase 4, :Klammer project macht sie nötig. Die Konfiguration ist bis dahin die Zustimmung.
- [ ] API-Key liegt in argv und ist in `ps` sichtbar, siehe ponytail-Kommentar in anthropic.lua und openai.lua — bekannte Decke, nur auf Mehrbenutzer-Maschinen ein Problem
+ [x] Bestätigung vor dem ersten Senden an einen Cloud-Provider — vorgezogen: der Trigger-Pfad sendet nach einem einzigen y, da trägt „die Konfiguration ist die Zustimmung“ nicht mehr. Sitzt in ai.send(), also auf dem einen Pfad, über den alles läuft.
+ [x] API-Key liegt in argv und ist in `ps` sichtbar — behoben, curl liest die Header jetzt aus einer 0600-Datei, Body bleibt auf stdin
  [ ] Persönlichkeitsmodi herablassend, hilfsbereit, passiv-aggressiv — gestrichen, ai.system ist schon ein freies Textfeld. Drei Presets wären Config für etwas, das man hintippen kann.
  [x] context.source landet im Prompt, damit „nearby“ nicht als abgeschnittener Code gemeldet wird
  [x] CHANGELOG.md angelegt, aus den beiden Tag-Messages
  [x] README nennt beide CI-Checks, nicht nur nvim -l
+Phase 3.1: Sicherheit, v0.3.1 — erledigt, vor Phase 4 gezogen
+ [x] context/secrets.lua: Blockliste (Globs über vim.fn.glob2regpat) und Redaction bekannter Key-Formate
+ [x] Blockliste greift in context/buffer.lua UND in triggers.ignored(), also auch bevor eine Blase erscheint
+ [x] Blockierte Datei wird schweigend abgelehnt, kein Spruch — eine Absage bestätigt, dass die Datei interessant ist
+ [x] ai.consent: einmal fragen, Antwort in state.json, „Nie wieder“ schaltet die KI ab bis :Klammer reset
+ [x] API-Key wird aus Fehlermeldungen entfernt, bevor sie in der Blase landen
+ [x] Test, dass claude.no_tools die Schreib- und Ausführwerkzeuge weiter abdeckt — das ist der Schutz gegen Prompt Injection aus Repo-Dateien
+ [x] tests/test_secrets.lua, plus Consent- und Blockliste-Tests in test_ai.lua
+ [ ] Entropie-basierte Secret-Erkennung — bewusst nicht, False Positives zerstören still den Code, den das Modell erklären soll
+
 Phase 4: Projektkontext, v0.4 (ca. 2–3 Wochen)
  context/search.lua: Schlüsselwörter extrahieren, rg --json, Treffer ranken
  Token-Budget, Default ca. 6000 Tokens
  Projektübersicht über git ls-files, gekürzt
  context/lsp.lua: Dokumentsymbole und Diagnostics
- Blockliste für sensible Dateien (.env, *.pem, *secret*, *.key), standardmäßig aktiv
+ [x] Blockliste für sensible Dateien (.env, *.pem, *secret*, *.key), standardmäßig aktiv — in Phase 3.1 vorgezogen, context/search.lua muss sie nur mitbenutzen
  :Klammer project <Frage>
  Optional: Embeddings, Cache in stdpath("cache") .. "/ai_klammer/"
 Daueraufgaben

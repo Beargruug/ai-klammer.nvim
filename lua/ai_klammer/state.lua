@@ -35,7 +35,19 @@ function M.silenced()
   return vim.tbl_keys(read().never)
 end
 
---- Forget every "never again" and reset the cooldown.
+--- Whether the user has agreed to their code leaving the machine.
+--- @return boolean|nil nil when never asked, false when refused for good
+function M.consent()
+  return read().consent
+end
+
+function M.set_consent(answer)
+  read().consent = answer
+  M.save()
+end
+
+--- Forget every "never again", the cooldown, and the answer to the consent
+--- question, so a refusal is recoverable without deleting the file by hand.
 function M.reset()
   data = { never = {} }
   last = {}

@@ -41,6 +41,35 @@ M.defaults = {
     context_lines = 30,
     -- the Klammer refuses to read more than this in one go
     max_lines = 400,
+    -- files the Klammer never reads, and never admits to not reading. Globs
+    -- without a slash match the file name, globs with one match the path.
+    blocklist = {
+      ".env",
+      ".env.*",
+      "*.pem",
+      "*.key",
+      "*.p12",
+      "*.pfx",
+      "*.kdbx",
+      "*.tfvars",
+      "*secret*",
+      "*credential*",
+      "id_rsa*",
+      "id_ecdsa*",
+      "id_ed25519*",
+      ".netrc",
+      ".npmrc",
+      ".pypirc",
+      ".htpasswd",
+      "*/.ssh/*",
+      "*/.aws/*",
+      "*/.gnupg/*",
+    },
+    -- strip recognisable API keys out of the code before it is sent
+    redact = true,
+    -- nil asks once before the first request and remembers the answer;
+    -- true accepts up front, for a config that should never prompt
+    consent = nil,
   },
 }
 
@@ -71,6 +100,9 @@ function M.setup(opts)
     ["ai.system"] = { config.ai.system, "string" },
     ["ai.context_lines"] = { config.ai.context_lines, "number" },
     ["ai.max_lines"] = { config.ai.max_lines, "number" },
+    ["ai.blocklist"] = { config.ai.blocklist, "table" },
+    ["ai.redact"] = { config.ai.redact, "boolean" },
+    ["ai.consent"] = { config.ai.consent, "boolean", true },
   })
   assert(
     config.annoyance >= 0 and config.annoyance <= 3,

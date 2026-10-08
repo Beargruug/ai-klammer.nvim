@@ -54,24 +54,17 @@ function M.stream(messages, config, on_chunk, on_done)
     return on_done("no API key: set " .. M.env .. " or ai.api_key")
   end
 
-  -- ponytail: the key rides in argv, so it shows up in `ps` for this user.
-  -- Move it into a 0600 curl --config file if that ever matters.
-  return shared.run({
-    M.command,
-    "-sS",
-    "--no-buffer",
-    "-X",
-    "POST",
-    (config.ai.url or M.url) .. "/v1/messages",
-    "-H",
-    "content-type: application/json",
-    "-H",
-    "anthropic-version: 2023-06-01",
-    "-H",
-    "x-api-key: " .. key,
-    "--data-binary",
-    "@-",
-  }, body(messages, config), M.parse, on_chunk, on_done)
+  return shared.curl({
+    url = (config.ai.url or M.url) .. "/v1/messages",
+    headers = {
+      "content-type: application/json",
+      "anthropic-version: 2023-06-01",
+      "x-api-key: " .. key,
+    },
+    body = body(messages, config),
+    parse = M.parse,
+    secret = key,
+  }, on_chunk, on_done)
 end
 
 return M

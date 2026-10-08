@@ -40,6 +40,33 @@ assert(#chat == 1 and chat[1].done and chat[1].content == "", "finish_reason end
 chat = openai.parse('{"error":{"message":"model_not_found","type":"invalid_request_error"}}\n')
 assert(chat[1].error == "model_not_found", "a rejected request still has to come through")
 
+-- The key must never reach argv, where `ps` shows it to every process on the
+-- machine. curl reads it out of a 0600 file instead.
+local argv, header_lines, header_mode
+local real_system = vim.system
+vim.system = function(command, _, on_exit)
+  argv = table.concat(command, " ")
+  for index, argument in ipairs(command) do
+    if argument == "--config" then
+      header_lines = table.concat(vim.fn.readfile(command[index + 1]), "\n")
+      header_mode = vim.uv.fs_stat(command[index + 1]).mode % 512
+    end
+  end
+  on_exit({ code = 0, stderr = "" })
+  return { kill = function() end }
+end
+openai.stream(
+  { { role = "user", content = "hi" } },
+  { ai = { api_key = "sk-secret-value", max_tokens = 16 } },
+  function() end,
+  function() end
+)
+vim.system = real_system
+
+assert(not argv:find("sk-secret-value", 1, true), "the key is not in argv")
+assert(header_lines:find("sk-secret-value", 1, true), "it is in the config file curl reads")
+assert(header_mode == tonumber("600", 8), "which only its owner can read")
+
 -- The claude CLI prints NDJSON and hides failures in the last line, not the exit code.
 local claude = require("ai_klammer.providers.claude")
 local cli, cli_tail = claude.parse(
@@ -59,6 +86,12 @@ assert(cli[1].done and cli[1].error == "no such model", "a failed result is an e
 
 cli = claude.parse('{"type":"result","subtype":"success","is_error":false,"result":"It "}\n')
 assert(cli[1].done and cli[1].error == nil and cli[1].content == "", "a good result just ends the stream")
+
+-- Disabled tools are what keep a prompt injection in someone's repo from
+-- becoming a shell command. If this list is ever trimmed, that stops holding.
+for _, tool in ipairs({ "Bash", "Edit", "Write", "NotebookEdit", "Read", "Glob", "Grep", "WebFetch", "Task" }) do
+  assert(vim.tbl_contains(claude.no_tools, tool), tool .. " must stay disabled: repo contents are untrusted input")
+end
 
 local config = require("ai_klammer.config").setup()
 
@@ -108,6 +141,7 @@ assert(big == nil and why == "too_big" and count == 5, "an oversized selection i
 local sent
 local spy = require("ai_klammer.config").setup({
   ai = {
+    consent = true,
     provider = {
       stream = function(messages)
         sent = messages
@@ -119,6 +153,40 @@ vim.api.nvim_win_set_cursor(0, { 2, 0 })
 ai.run("Why?", nil, spy)
 assert(sent[2].content:find("a whole function", 1, true), "the prompt says what kind of snippet it is")
 require("ai_klammer").hide()
+
+-- Nothing leaves the machine before the question has been answered once.
+local asked = require("ai_klammer.config").setup({
+  ai = {
+    provider = {
+      stream = function()
+        error("sent code without asking")
+      end,
+    },
+  },
+})
+require("ai_klammer.state").reset()
+ai.run("Why?", nil, asked)
+assert(bubble.is_open(), "it asks instead")
+require("ai_klammer").hide()
+
+-- A refusal sticks, and still does not call the provider.
+require("ai_klammer.state").set_consent(false)
+ai.run("Why?", nil, asked)
+assert(bubble.is_open(), "it says no rather than silently doing nothing")
+require("ai_klammer").hide()
+require("ai_klammer.state").reset()
+
+-- A blocklisted file is answered with silence: no request, and no bubble
+-- either, because a refusal confirms the file is worth looking at.
+local secret_buf = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_set_name(secret_buf, vim.fn.tempname() .. "/.env")
+vim.api.nvim_buf_set_lines(secret_buf, 0, -1, false, { "AWS_SECRET_ACCESS_KEY=nope" })
+vim.api.nvim_set_current_buf(secret_buf)
+sent = nil
+ai.run("Why?", { 1, 1 }, spy)
+assert(sent == nil, "a secrets file is never sent, even with consent given")
+assert(not bubble.is_open(), "and no bubble either, which would confirm it exists")
+vim.api.nvim_set_current_buf(buf)
 
 -- The bubble has to grow as an answer streams in, in place, without reopening.
 local win = bubble.show("Let me unbend for a second...", { language = "en", focus = false })

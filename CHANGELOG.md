@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1] — the Klammer learns what not to read
+
+### Security
+
+- The Klammer no longer reads files matching `ai.blocklist` (`.env`, `*.pem`,
+  `*secret*`, `~/.ssh/*` and friends). This applies to the triggers too, so no
+  bubble appears in such a file offering help that would send it. The refusal
+  is silent: announcing it would confirm the file is worth reading
+- `ai.redact` strips recognisable credentials — private key blocks, `sk-…`,
+  `ghp_…`, `AKIA…`, `xox…`, JWTs and long `password = "…"` values — out of the
+  code before it is sent. Known prefixes only, no entropy guessing
+- The Klammer asks once, before the very first request, whether your code may
+  leave the machine, and remembers the answer. `Ne[v]er again` disables the AI
+  features until `:Klammer reset`. `ai.consent = true` skips the prompt
+- API keys are passed to `curl` through a `0600` file instead of argv, so they
+  no longer show up in `ps`
+- Any API key is scrubbed out of error messages before they reach the bubble
+
+### Added
+
+- `ai.send()`, so context that did not come from the current buffer can still
+  be put to the model
+
 ## [0.3.0] — the Klammer talks to anything
 
 ### Added
@@ -52,7 +75,8 @@ An ASCII paperclip in the corner with opinions and no help to offer.
 - Quips in English and German, cooldown and per-trigger "never again" in state
 - `:Klammer hello|show|hide|reset`, `:checkhealth ai_klammer`
 
-[unreleased]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Beargruug/ai-klammer.nvim/releases/tag/v0.1.0

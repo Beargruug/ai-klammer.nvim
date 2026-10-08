@@ -26,6 +26,9 @@ local phrases = {
     unreachable = "I cannot reach %s. Is it running? :checkhealth ai_klammer knows more.",
     failed = "That did not work: %s",
     silent = "The model said nothing at all. I know the feeling.",
+    consent = "Before I answer that: the code I am looking at gets sent to %s. "
+      .. "Say yes once and I will stop asking.",
+    refused = "You told me never to send your code anywhere, so I will not. :Klammer reset if you change your mind.",
   },
   de = {
     thinking = "Lass mich kurz geradebiegen...",
@@ -35,6 +38,9 @@ local phrases = {
     unreachable = "Ich erreiche %s nicht. Läuft das? :checkhealth ai_klammer weiß mehr.",
     failed = "Das hat nicht geklappt: %s",
     silent = "Das Modell hat gar nichts gesagt. Das Gefühl kenne ich.",
+    consent = "Bevor ich das beantworte: Der Code, den ich ansehe, geht an %s. "
+      .. "Einmal ja, dann frage ich nicht mehr.",
+    refused = "Du hast gesagt, mein Code soll nirgendwohin. Also bleibt er hier. :Klammer reset, falls du es dir anders überlegst.",
   },
 }
 
@@ -58,6 +64,37 @@ function M.resolve(config)
   return ok and type(module) == "table" and type(module.stream) == "function" and module or nil
 end
 
+--- Ask once, ever, before any code leaves the machine, and remember the answer.
+--- Every path that sends code goes through here: a typed command, a trigger
+--- the user only pressed y on, and whatever Phase 4 adds.
+local function consented(config, continue)
+  local state = require("ai_klammer.state")
+  local answer = config.ai.consent
+  if answer == nil then
+    answer = state.consent()
+  end
+  if answer == true then
+    return continue()
+  end
+  if answer == false then
+    return complain(config, "refused")
+  end
+
+  local provider = type(config.ai.provider) == "string" and config.ai.provider or "the provider you configured"
+  bubble.show(say(config.language, "consent", provider), {
+    language = config.language,
+    mood = "thinking",
+    buttons = true,
+    on_yes = function()
+      state.set_consent(true)
+      continue()
+    end,
+    on_never = function()
+      state.set_consent(false)
+    end,
+  })
+end
+
 --- Ask the configured model about the code around the cursor and stream the answer
 --- into the speech bubble. <Esc> or q kills the request mid-sentence.
 --- @param question string
@@ -67,8 +104,33 @@ function M.run(question, range, config)
 
   local context, reason, count = require("ai_klammer.context.buffer").grab(0, range, config)
   if not context then
-    return complain(config, reason, count)
+    -- A blocklisted file is answered with silence. Saying "I will not read
+    -- that" would confirm the file exists and is worth looking at.
+    if reason ~= "blocked" then
+      complain(config, reason, count)
+    end
+    return
   end
+
+  M.send(
+    question,
+    ("%s, lines %d-%d, %s:\n```%s\n%s\n```"):format(
+      context.name,
+      context.first,
+      context.last,
+      sources[context.source] or "some code",
+      context.filetype,
+      context.text
+    ),
+    config
+  )
+end
+
+--- Put a question and an already-assembled block of context to the model.
+--- @param question string
+--- @param body string the context, formatted and already safe to send
+function M.send(question, body, config)
+  config = config or require("ai_klammer").config
 
   local provider = M.resolve(config)
   if not provider then
@@ -80,18 +142,7 @@ function M.run(question, range, config)
       role = "system",
       content = config.ai.system .. " Answer in " .. (config.language == "de" and "German." or "English."),
     },
-    {
-      role = "user",
-      content = ("%s\n\n%s, lines %d-%d, %s:\n```%s\n%s\n```"):format(
-        question,
-        context.name,
-        context.first,
-        context.last,
-        sources[context.source] or "some code",
-        context.filetype,
-        context.text
-      ),
-    },
+    { role = "user", content = question .. "\n\n" .. body },
   }
 
   local handle
@@ -119,16 +170,18 @@ function M.run(question, range, config)
     end
   end)
 
-  bubble.show(say(config.language, "thinking"), {
-    language = config.language,
-    mood = "thinking",
-    on_no = function()
-      if handle then
-        handle:kill(15)
-      end
-    end,
-  })
-  handle = provider.stream(messages, config, on_chunk, on_done)
+  consented(config, function()
+    bubble.show(say(config.language, "thinking"), {
+      language = config.language,
+      mood = "thinking",
+      on_no = function()
+        if handle then
+          handle:kill(15)
+        end
+      end,
+    })
+    handle = provider.stream(messages, config, on_chunk, on_done)
+  end)
 end
 
 return M

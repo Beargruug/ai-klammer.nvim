@@ -20,8 +20,9 @@ An ASCII paperclip that lives in the corner of your editor and has opinions abou
 It greets you when Neovim starts, fades the greeting after three seconds, then stays in the
 corner blinking until you send it away. The greeting never takes your cursor.
 
-Status: v0.3. It watches, it comments, it explains the function you just highlighted, and it
-does it through Claude, the Anthropic API, or anything that speaks OpenAI.
+Status: v0.3.1. It watches, it comments, it explains the function you just highlighted, and it
+does it through Claude, the Anthropic API, or anything that speaks OpenAI. It asks before
+sending anything, and it will not read your `.env`.
 
 ## Requirements
 
@@ -62,6 +63,9 @@ require("ai_klammer").setup({
     system = "...", -- the Klammer's manners, override to change its voice
     context_lines = 30, -- lines around the cursor when nothing else is found
     max_lines = 400, -- more than this and it refuses to read
+    blocklist = { ".env", "*.pem", "*secret*", ... }, -- files it never reads
+    redact = true, -- strip recognisable API keys out of the code before sending
+    consent = nil, -- nil asks once and remembers; true accepts up front
   },
 })
 ```
@@ -99,8 +103,8 @@ ai = {
 
 A plain string works too, and `:checkhealth ai_klammer` will tell you it is a bad idea.
 
-> Either way the selected code leaves your machine when you ask a question. The Klammer will
-> not ask again after you configure it — that is what configuring it means.
+> Either way the selected code leaves your machine when you ask a question. See
+> [What it will not send](#what-it-will-not-send).
 
 ## Using OpenAI, or anything that speaks like it
 
@@ -166,6 +170,34 @@ vim.keymap.set({ "n", "v" }, "<leader>ka", ":Klammer ask ", {})
 
 In visual mode `:Klammer explain` becomes `:'<,'>Klammer explain` on its own, so the selection
 is what gets sent.
+
+## What it will not send
+
+The Klammer talks to a model, so your code leaves your machine when you ask it something.
+Three things limit that, all on by default.
+
+**It asks once.** Before the first request ever, the Klammer asks whether your code may be
+sent, and remembers the answer. `[N]o` declines this one question and it will ask again;
+`Ne[v]er again` turns the AI features off for good, until `:Klammer reset`. Set
+`ai.consent = true` to skip the question entirely.
+
+**It never reads certain files.** Anything matching `ai.blocklist` — `.env`, `*.pem`, `*.key`,
+`*secret*`, `id_rsa*`, `~/.ssh/*`, `~/.aws/*` and friends — is refused, by the commands *and*
+by the triggers, so no bubble ever appears there offering to help. It stays quiet rather than
+announcing the refusal, because "I won't read that" tells anyone watching your screen that the
+file is worth reading. Globs without a slash match the file name; globs with one match the
+whole path.
+
+**It strips keys out of what it does send.** `ai.redact` removes recognisable credentials —
+private key blocks, `sk-…`, `ghp_…`, `AKIA…`, `xox…`, and `password = "…"`-style assignments —
+from the code before it goes anywhere. It matches known prefixes only, never entropy, because
+a false positive would quietly mangle the code you asked about.
+
+API keys are passed to `curl` in a `0600` file rather than on the command line, so they do not
+show up in `ps`.
+
+None of this makes it safe to point the Klammer at a machine full of other people's secrets.
+It narrows the obvious accidents.
 
 ## Triggers
 
