@@ -1,3 +1,5 @@
+local shared = require("ai_klammer.providers.shared")
+
 local M = {}
 
 M.name = "claude"
@@ -26,20 +28,16 @@ M.no_tools = {
 --- @return table chunks { content, done, error }
 --- @return string rest the unterminated tail, for the next read
 function M.parse(buffer)
-  local lines = vim.split(buffer, "\n", { plain = true })
-  local rest = table.remove(lines)
+  local objects, rest = shared.events(buffer)
   local chunks = {}
-  for _, line in ipairs(lines) do
-    local ok, object = pcall(vim.json.decode, line)
-    if ok and type(object) == "table" then
-      local event = object.type == "stream_event" and object.event or nil
-      local delta = event and event.type == "content_block_delta" and event.delta or nil
-      chunks[#chunks + 1] = {
-        content = (delta and delta.text) or "",
-        done = object.type == "result",
-        error = (object.type == "result" and object.is_error and (object.result or object.subtype)) or nil,
-      }
-    end
+  for _, object in ipairs(objects) do
+    local event = object.type == "stream_event" and object.event or nil
+    local delta = event and event.type == "content_block_delta" and event.delta or nil
+    chunks[#chunks + 1] = {
+      content = (delta and delta.text) or "",
+      done = object.type == "result",
+      error = (object.type == "result" and object.is_error and (object.result or object.subtype)) or nil,
+    }
   end
   return chunks, rest
 end
@@ -74,31 +72,7 @@ function M.stream(messages, config, on_chunk, on_done)
   }
   vim.list_extend(command, M.no_tools)
 
-  local buffer = ""
-  local failed
-  return vim.system(command, {
-    text = true,
-    stdin = table.concat(prompt, "\n\n"),
-    stdout = function(_, data)
-      if not data then
-        return
-      end
-      local chunks
-      chunks, buffer = M.parse(buffer .. data)
-      for _, chunk in ipairs(chunks) do
-        if chunk.error then
-          failed = chunk.error
-        elseif chunk.content ~= "" then
-          on_chunk(chunk.content)
-        end
-      end
-    end,
-  }, function(result)
-    if not failed and result.code ~= 0 then
-      failed = vim.trim(result.stderr or "") ~= "" and vim.trim(result.stderr) or ("claude exited with " .. result.code)
-    end
-    on_done(failed)
-  end)
+  return shared.run(command, table.concat(prompt, "\n\n"), M.parse, on_chunk, on_done)
 end
 
 return M

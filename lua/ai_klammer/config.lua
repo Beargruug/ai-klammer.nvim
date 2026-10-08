@@ -22,7 +22,7 @@ M.defaults = {
   -- how many errors in the buffer before the Klammer comments
   diagnostics_count = 5,
   ai = {
-    -- a module name under ai_klammer.providers.*, or your own table with a
+    -- "claude", "anthropic", "openai", or your own table with a
     -- stream(messages, config, on_chunk, on_done) function
     provider = "claude",
     -- nil = the provider's own default model, same for url below

@@ -9,6 +9,14 @@ M.questions = {
   diagnostics = "Explain these errors and how to fix them.",
 }
 
+--- Where the code came from, so the model does not report a half-caught
+--- expression as a bug when the Klammer was the one holding the scissors.
+local sources = {
+  selection = "a selection",
+  ["function"] = "a whole function",
+  nearby = "an arbitrary slice around the cursor, so it may start or end mid-expression",
+}
+
 local phrases = {
   en = {
     thinking = "Let me unbend for a second...",
@@ -74,11 +82,12 @@ function M.run(question, range, config)
     },
     {
       role = "user",
-      content = ("%s\n\n%s, lines %d-%d:\n```%s\n%s\n```"):format(
+      content = ("%s\n\n%s, lines %d-%d, %s:\n```%s\n%s\n```"):format(
         question,
         context.name,
         context.first,
         context.last,
+        sources[context.source] or "some code",
         context.filetype,
         context.text
       ),

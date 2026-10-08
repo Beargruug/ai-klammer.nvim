@@ -20,13 +20,14 @@ An ASCII paperclip that lives in the corner of your editor and has opinions abou
 It greets you when Neovim starts, fades the greeting after three seconds, then stays in the
 corner blinking until you send it away. The greeting never takes your cursor.
 
-Status: v0.2. It watches, it comments, and it will now explain the function you just highlighted.
+Status: v0.3. It watches, it comments, it explains the function you just highlighted, and it
+does it through Claude, the Anthropic API, or anything that speaks OpenAI.
 
 ## Requirements
 
 - Neovim 0.10+
-- For the AI bits: the [`claude`](https://claude.com/claude-code) CLI, or an Anthropic API key
-  and `curl`
+- For the AI bits: the [`claude`](https://claude.com/claude-code) CLI, or `curl` and an API key
+  for Anthropic or any OpenAI-compatible endpoint
 - `git` for the big-diff trigger (optional)
 
 ## Installation
@@ -53,9 +54,9 @@ require("ai_klammer").setup({
   git_lines = 300, -- changed lines against HEAD before the Klammer says something
   diagnostics_count = 5, -- errors in the buffer before the Klammer says something
   ai = {
-    provider = "claude", -- "claude", "anthropic", or your own table
+    provider = "claude", -- "claude", "anthropic", "openai", or your own table
     model = nil, -- nil = the provider's own default, same for url
-    url = nil,
+    url = nil, -- base URL, for a proxy or any OpenAI-compatible server
     api_key = nil, -- nil = the provider's env var; a function is called when needed
     max_tokens = 1024,
     system = "...", -- the Klammer's manners, override to change its voice
@@ -101,10 +102,31 @@ A plain string works too, and `:checkhealth ai_klammer` will tell you it is a ba
 > Either way the selected code leaves your machine when you ask a question. The Klammer will
 > not ask again after you configure it — that is what configuring it means.
 
+## Using OpenAI, or anything that speaks like it
+
+```lua
+{ "Beargruug/ai-klammer.nvim", opts = { ai = { provider = "openai" } } }
+```
+
+The key comes from `OPENAI_API_KEY`, or from `api_key` as a function, exactly as above. `url`
+is the base URL including the version segment, so the same provider reaches anything with a
+`/chat/completions` endpoint:
+
+```lua
+-- Groq
+ai = { provider = "openai", url = "https://api.groq.com/openai/v1", model = "llama-3.3-70b-versatile" }
+
+-- OpenRouter
+ai = { provider = "openai", url = "https://openrouter.ai/api/v1", model = "anthropic/claude-sonnet-4.5" }
+
+-- llama.cpp or LM Studio on your own machine, where the key is ignored
+ai = { provider = "openai", url = "http://127.0.0.1:1234/v1", api_key = "none" }
+```
+
 ## Bring your own AI
 
-`ai.provider` is either the name of a bundled provider (`"claude"` or `"anthropic"`) or a table
-you pass in. Anything with a `stream` function will do, so the Klammer never has to know which
+`ai.provider` is either the name of a bundled provider (`"claude"`, `"anthropic"`, `"openai"`)
+or a table you pass in. Anything with a `stream` function will do, so the Klammer never has to know which
 model, API or SDK you use:
 
 ```lua
@@ -175,8 +197,11 @@ entirely, greeting included. Saying yes to a trigger now asks the model about it
 
 ## Tests
 
+Both of these run in CI, so run both before pushing:
+
 ```sh
-for t in tests/test_*.lua; do nvim -l "$t"; done
+for t in tests/test_*.lua; do nvim -l "$t" || break; done
+stylua --check .
 ```
 
 ## License

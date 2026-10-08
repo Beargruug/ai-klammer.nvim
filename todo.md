@@ -12,7 +12,7 @@ ai-klammer.nvim/
 │   ├── triggers/  (init.lua, git.lua, regex.lua, diagnostics.lua)
 │   ├── quips/     (de.lua, en.lua)
 │   ├── context/   (buffer.lua, search.lua, lsp.lua)
-│   └── providers/ (claude.lua, anthropic.lua, openai.lua)
+│   └── providers/ (shared.lua, claude.lua, anthropic.lua, openai.lua)
 ├── doc/ai-klammer.txt
 └── tests/
 Phase 0: Fundament (ca. 1 Abend)
@@ -78,17 +78,21 @@ Phase 2: KI-Anbindung, v0.2 (ca. 2 Wochen) — erledigt
  [x] Healthcheck erweitern: Provider ladbar, Kommando auf dem PATH, API-Key vorhanden
  [x] Freundliche Fehlermeldung im Klammer-Ton, wenn kein Provider läuft
  [x] tests/test_ai.lua: NDJSON-Parser, Kontextauswahl, mitwachsende Sprechblase
-Phase 3: Weitere Provider, v0.3 (ca. 1–2 Wochen)
+Phase 3: Weitere Provider, v0.3 (ca. 1–2 Wochen) — erledigt
  [x] providers/anthropic.lua mit SSE-Streaming, vorgezogen
  [x] providers/claude.lua über die claude-CLI, nutzt das vorhandene Claude-Code-Login, kein API-Key
  [x] API-Keys aus Umgebungsvariable oder Funktion, Healthcheck warnt bei Klartext-Keys
  [x] ai.url und ai.model sind optional, jeder Provider kennt seine eigenen Defaults
  [x] Healthcheck prüft provider.command auf dem PATH, nicht mehr curl fest verdrahtet
- [ ] providers/openai.lua mit konfigurierbarer base_url für kompatible APIs
- [ ] Gemeinsamen SSE-Parser aus anthropic.lua herausziehen, sobald openai.lua ihn auch braucht
- [ ] Bestätigung vor dem ersten Senden an einen Cloud-Provider — bewusst offen, die Konfiguration ist die Zustimmung. Nachziehen, wenn sich jemand überrumpelt fühlt.
- [ ] API-Key liegt in argv und ist in `ps` sichtbar, siehe ponytail-Kommentar in anthropic.lua
- [ ] Persönlichkeitsmodi herablassend, hilfsbereit, passiv-aggressiv
+ [x] providers/openai.lua mit konfigurierbarer base_url für kompatible APIs — deckt OpenAI, Groq, OpenRouter, llama.cpp und LM Studio ab
+ [x] Gemeinsamen SSE-Parser aus anthropic.lua herausziehen, sobald openai.lua ihn auch braucht — providers/shared.lua, mit openai.lua als zweitem Aufrufer fällig geworden. Enthält auch Key-Lookup und den Subprozess-Pump, die alle drei Provider teilen.
+ [ ] providers/init.lua mit Interface — bleibt übersprungen, auch mit drei Providern reicht ai.resolve() plus shared.lua
+ [ ] Bestätigung vor dem ersten Senden an einen Cloud-Provider — vertagt auf Phase 4, :Klammer project macht sie nötig. Die Konfiguration ist bis dahin die Zustimmung.
+ [ ] API-Key liegt in argv und ist in `ps` sichtbar, siehe ponytail-Kommentar in anthropic.lua und openai.lua — bekannte Decke, nur auf Mehrbenutzer-Maschinen ein Problem
+ [ ] Persönlichkeitsmodi herablassend, hilfsbereit, passiv-aggressiv — gestrichen, ai.system ist schon ein freies Textfeld. Drei Presets wären Config für etwas, das man hintippen kann.
+ [x] context.source landet im Prompt, damit „nearby“ nicht als abgeschnittener Code gemeldet wird
+ [x] CHANGELOG.md angelegt, aus den beiden Tag-Messages
+ [x] README nennt beide CI-Checks, nicht nur nvim -l
 Phase 4: Projektkontext, v0.4 (ca. 2–3 Wochen)
  context/search.lua: Schlüsselwörter extrahieren, rg --json, Treffer ranken
  Token-Budget, Default ca. 6000 Tokens
@@ -100,4 +104,4 @@ Phase 4: Projektkontext, v0.4 (ca. 2–3 Wochen)
 Daueraufgaben
  Nach jedem Release ein neues GIF für das neue Feature
  Spruchvorschläge der Community über Issues annehmen
- CHANGELOG.md pflegen
+ CHANGELOG.md pflegen — angelegt, Unreleased-Abschnitt bei jedem Feature nachziehen

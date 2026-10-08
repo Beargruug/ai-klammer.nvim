@@ -2,19 +2,20 @@ vim.opt.runtimepath:prepend(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(
 
 local bubble = require("ai_klammer.ui.bubble")
 local context = require("ai_klammer.context.buffer")
--- Anthropic speaks SSE: "data: {...}" lines, "event:" lines to skip, and a bare
--- JSON body when the request never becomes a stream.
+
+-- One line splitter for all three providers: "data: " prefixes come off,
+-- "event:" lines and half-written tails drop out because they do not decode.
+local shared = require("ai_klammer.providers.shared")
+local objects, tail = shared.events('event: ping\ndata: {"a":1}\n{"b":2}\ndata: {"c')
+assert(#objects == 2 and objects[1].a == 1 and objects[2].b == 2, "SSE and bare NDJSON both decode")
+assert(tail == 'data: {"c', "the half line waits for the next read")
+assert(#shared.events("not json at all\ndata: [DONE]\n") == 0, "garbage and the DONE sentinel are skipped")
+
 local anthropic = require("ai_klammer.providers.anthropic")
-local events, tail = anthropic.parse(
-  'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"It "}}\ndata: {"ty'
+local events = anthropic.parse(
+  'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"It "}}\n'
 )
 assert(#events == 1 and events[1].content == "It ", "only the data line carries text")
-assert(tail == 'data: {"ty', "the half line waits for the next read")
-
--- Streams arrive split at arbitrary byte boundaries, never on whole lines.
-local rejoined = anthropic.parse(tail .. 'pe":"content_block_delta","delta":{"text":"lo"}}\n')
-assert(rejoined[1].content == "lo", "the rejoined line parses")
-assert(#anthropic.parse("not json at all\n") == 0, "garbage is skipped, not thrown")
 
 events = anthropic.parse('data: {"type":"message_stop"}\n')
 assert(events[1].done and events[1].content == "", "message_stop ends it without text")
@@ -27,6 +28,17 @@ assert(anthropic.key({ ai = {
     return "from-a-function"
   end,
 } }) == "from-a-function", "a function key is called, so secrets can stay out of the config")
+
+-- OpenAI hides the text one level deeper, in choices[1].delta.
+local openai = require("ai_klammer.providers.openai")
+local chat = openai.parse('data: {"choices":[{"delta":{"content":"It "},"finish_reason":null}]}\n')
+assert(chat[1].content == "It " and not chat[1].done, "a delta carries text and does not end the stream")
+
+chat = openai.parse('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\ndata: [DONE]\n')
+assert(#chat == 1 and chat[1].done and chat[1].content == "", "finish_reason ends it, [DONE] is not JSON")
+
+chat = openai.parse('{"error":{"message":"model_not_found","type":"invalid_request_error"}}\n')
+assert(chat[1].error == "model_not_found", "a rejected request still has to come through")
 
 -- The claude CLI prints NDJSON and hides failures in the last line, not the exit code.
 local claude = require("ai_klammer.providers.claude")
@@ -53,6 +65,7 @@ local config = require("ai_klammer.config").setup()
 -- Bring your own provider: a table with a stream function is enough.
 local ai = require("ai_klammer.ai")
 assert(ai.resolve(config).stream == claude.stream, "a name resolves to a bundled module")
+assert(ai.resolve({ ai = { provider = "openai" } }).stream == openai.stream, "so does every other bundled name")
 assert(ai.resolve({ ai = { provider = "nope" } }) == nil, "an unknown name resolves to nothing")
 
 local mine = { stream = function() end }
@@ -89,6 +102,23 @@ assert(empty == nil and reason == "empty", "a blank selection is refused")
 
 local big, why, count = context.grab(buf, { 1, 5 }, vim.tbl_deep_extend("force", config, { ai = { max_lines = 2 } }))
 assert(big == nil and why == "too_big" and count == 5, "an oversized selection is refused with its size")
+
+-- Where the code came from has to reach the model, or it reports the Klammer's
+-- own clipping as a bug. A capturing provider is the cheapest way to look.
+local sent
+local spy = require("ai_klammer.config").setup({
+  ai = {
+    provider = {
+      stream = function(messages)
+        sent = messages
+      end,
+    },
+  },
+})
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+ai.run("Why?", nil, spy)
+assert(sent[2].content:find("a whole function", 1, true), "the prompt says what kind of snippet it is")
+require("ai_klammer").hide()
 
 -- The bubble has to grow as an answer streams in, in place, without reopening.
 local win = bubble.show("Let me unbend for a second...", { language = "en", focus = false })
