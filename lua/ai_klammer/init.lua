@@ -40,17 +40,32 @@ function M.show()
   require("ai_klammer.ui.avatar").show()
 end
 
+--- Run `answer` on a question, asking for one when the command came without it.
+local function asked(prompt, question, answer)
+  if question and question ~= "" then
+    return answer(question)
+  end
+  vim.ui.input({ prompt = prompt }, function(input)
+    if input and input ~= "" then
+      answer(input)
+    end
+  end)
+end
+
 --- Put a question to the Klammer about the code at hand. Prompts when none is given.
 --- @param question? string
 --- @param range? table { first, last }
 function M.ask(question, range)
-  if question and question ~= "" then
-    return require("ai_klammer.ai").run(question, range, M.config)
-  end
-  vim.ui.input({ prompt = "Klammer: " }, function(input)
-    if input and input ~= "" then
-      require("ai_klammer.ai").run(input, range, M.config)
-    end
+  asked("Klammer: ", question, function(input)
+    require("ai_klammer.ai").run(input, range, M.config)
+  end)
+end
+
+--- Put a question to the Klammer about the whole project rather than one buffer.
+--- @param question? string
+function M.project(question)
+  asked("Klammer, about this project: ", question, function(input)
+    require("ai_klammer.ai").project(input, M.config)
   end)
 end
 

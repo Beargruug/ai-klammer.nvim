@@ -26,6 +26,8 @@ local phrases = {
     unreachable = "I cannot reach %s. Is it running? :checkhealth ai_klammer knows more.",
     failed = "That did not work: %s",
     silent = "The model said nothing at all. I know the feeling.",
+    no_rg = "I look things up with ripgrep, and ripgrep is not on your PATH. Install it and ask me again.",
+    no_hits = "I searched the whole project and found nothing to do with that. Try words that appear in the code.",
     consent = "Before I answer that: the code I am looking at gets sent to %s. "
       .. "Say yes once and I will stop asking.",
     refused = "You told me never to send your code anywhere, so I will not. :Klammer reset if you change your mind.",
@@ -38,6 +40,8 @@ local phrases = {
     unreachable = "Ich erreiche %s nicht. Läuft das? :checkhealth ai_klammer weiß mehr.",
     failed = "Das hat nicht geklappt: %s",
     silent = "Das Modell hat gar nichts gesagt. Das Gefühl kenne ich.",
+    no_rg = "Ich schlage mit ripgrep nach, und ripgrep liegt nicht in deinem PATH. Installier es und frag noch mal.",
+    no_hits = "Ich habe das ganze Projekt durchsucht und nichts dazu gefunden. Nimm Wörter, die im Code vorkommen.",
     consent = "Bevor ich das beantworte: Der Code, den ich ansehe, geht an %s. "
       .. "Einmal ja, dann frage ich nicht mehr.",
     refused = "Du hast gesagt, mein Code soll nirgendwohin. Also bleibt er hier. :Klammer reset, falls du es dir anders überlegst.",
@@ -124,6 +128,20 @@ function M.run(question, range, config)
     ),
     config
   )
+end
+
+--- Ask about the project rather than the buffer: ripgrep finds the files the
+--- question is about, the model gets the matching lines. Consent, redaction
+--- and the kill switch come from send(), this only assembles a body.
+--- @param question string
+function M.project(question, config)
+  config = config or require("ai_klammer").config
+
+  local body, reason = require("ai_klammer.context.search").gather(question, config)
+  if not body then
+    return complain(config, reason)
+  end
+  M.send(question, "Matches from this project:\n\n" .. body, config)
 end
 
 --- Put a question and an already-assembled block of context to the model.

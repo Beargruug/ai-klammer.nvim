@@ -49,7 +49,8 @@ Local development:
 
 ```lua
 require("ai_klammer").setup({
-  annoyance = 2, -- 0 = silent, 1 = 15 min, 2 = 5 min, 3 = 1 min between quips
+  annoyance = 2, -- 0 = silent, 1 = 15 min, 2 = 5 min, 3 = 1 min between quips,
+                 -- and how often it says something with no point to it at all
   language = nil, -- "en" | "de", nil detects from v:lang
   ignore_filetypes = { "help", "qf", "netrw", "oil", "lazy", "mason", "gitcommit", "TelescopePrompt" },
   git_lines = 300, -- changed lines against HEAD before the Klammer says something
@@ -63,6 +64,7 @@ require("ai_klammer").setup({
     system = "...", -- the Klammer's manners, override to change its voice
     context_lines = 30, -- lines around the cursor when nothing else is found
     max_lines = 400, -- more than this and it refuses to read
+    project_budget = 6000, -- rough token ceiling for :Klammer project
     blocklist = { ".env", "*.pem", "*secret*", ... }, -- files it never reads
     redact = true, -- strip recognisable API keys out of the code before sending
     consent = nil, -- nil asks once and remembers; true accepts up front
@@ -171,6 +173,24 @@ vim.keymap.set({ "n", "v" }, "<leader>ka", ":Klammer ask ", {})
 In visual mode `:Klammer explain` becomes `:'<,'>Klammer explain` on its own, so the selection
 is what gets sent.
 
+## Asking about the whole project
+
+`:Klammer project where is the bubble drawn` searches the repository instead of the buffer.
+It pulls the content words out of your question, hands them to `ripgrep`, and sends the model
+the files that matched the most of them, best first, up to `ai.project_budget` tokens — plus
+one line naming the directories in the repo so it knows what it is looking at.
+
+```
+:Klammer project why does the consent prompt fire twice
+```
+
+Without a question it prompts for one. `ripgrep` has to be on your `PATH`; `:checkhealth
+ai_klammer` will say if it is not. The blocklist and redaction apply to search hits exactly
+as they do to the current buffer, so a match inside `.env` never leaves the machine.
+
+Ranking is "how many different keywords does this file contain", not "how many lines match",
+or the changelog would outrank the code for every question.
+
 ## What it will not send
 
 The Klammer talks to a model, so your code leaves your machine when you ask it something.
@@ -201,13 +221,20 @@ It narrows the obvious accidents.
 
 ## Triggers
 
-| Trigger       | When                                                           |
-| ------------- | -------------------------------------------------------------- |
-| `regex`       | A regex-looking literal under the cursor on `CursorHold`        |
-| `git`         | `git diff --shortstat HEAD` over `git_lines` on save            |
-| `diagnostics` | `diagnostics_count` errors or more in the buffer                |
+| Trigger       | When                                                          |
+| ------------- | ------------------------------------------------------------- |
+| `regex`       | A regex-looking literal under the cursor on `CursorHold`       |
+| `git`         | `git diff --shortstat HEAD` over `git_lines` on save           |
+| `diagnostics` | `diagnostics_count` errors or more in the buffer               |
+| `idle`        | Nothing at all — every so often it just says something useless |
 
 In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger, `q`/`<Esc>` to dismiss.
+
+`idle` is the exception. It checks nothing, it has nothing to offer, and the remark is of no use
+to anybody — that is the feature. Its bubble has no buttons, never takes your cursor, and fades
+after four seconds. It is deliberately *not* context-aware: it never reads your code, so there
+is nothing it could send. How often it happens comes from `annoyance`, and it keeps its own
+half-hour cooldown on top, so a joke can never crowd out a trigger that had a real point to make.
 
 ## Commands
 
@@ -219,6 +246,7 @@ In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger, `q`/`<
 | `:Klammer reset`          | Forget every "never again" and the cooldown              |
 | `:[range]Klammer explain` | Explain the selection, the function, or the lines nearby |
 | `:[range]Klammer ask [q]` | Ask anything about that code; prompts without `q`        |
+| `:Klammer project [q]`    | Ask about the whole repository; ripgrep finds the files  |
 
 Answering a bubble closes the bubble only — the paperclip stays. `annoyance = 0` keeps it off
 entirely, greeting included. Saying yes to a trigger now asks the model about it.

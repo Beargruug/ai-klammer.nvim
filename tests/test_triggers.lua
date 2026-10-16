@@ -24,4 +24,43 @@ assert(not triggers.ignored(buf, config), "normal buffers are fair game")
 assert(require("ai_klammer.config").setup({ annoyance = 0 }).cooldown == math.huge, "annoyance 0 never fires")
 assert(require("ai_klammer.config").setup({ annoyance = 3 }).cooldown == 60, "annoyance 3 is chatty")
 
+-- The joke trigger is the one knob people will want turned down, so it hangs
+-- off annoyance instead of a switch of its own.
+local idle = require("ai_klammer.triggers.idle")
+local quiet = require("ai_klammer.config").setup({ annoyance = 0 })
+assert(quiet.joke_chance == 0, "annoyance 0 makes no jokes")
+assert(require("ai_klammer.config").setup({ annoyance = 3 }).joke_chance > config.joke_chance, "3 makes more than 2")
+
+local fired
+idle.check(buf, quiet, function(count)
+  fired = count
+end)
+assert(fired == nil, "and the check agrees, whatever the dice say")
+
+local real_random = math.random
+math.random = function()
+  return 0
+end
+idle.check(buf, config, function(count)
+  fired = count
+end)
+math.random = real_random
+assert(fired, "a low roll is a joke")
+
+-- Jokes must not win the shared cooldown off the triggers that have something
+-- real to say, so they ask for a much longer one of their own.
+assert(idle.cooldown > require("ai_klammer.config").cooldowns[1], "jokes are rarer than the chattiest trigger")
+
+-- No question behind it means no buttons: nothing to say yes to.
+assert(require("ai_klammer.ai").questions[idle.name] == nil, "there is nothing to ask about a joke")
+
+local bubble = require("ai_klammer.ui.bubble")
+local before = vim.api.nvim_get_current_win()
+local win = triggers.fire(idle.name, 1, config)
+assert(bubble.is_open(), "it still says it")
+assert(vim.api.nvim_get_current_win() == before, "and never takes the cursor")
+local shown = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 0, -1, false)
+assert(not vim.tbl_contains(shown, bubble.buttons.en.line), "but offers no buttons:\n" .. table.concat(shown, "\n"))
+require("ai_klammer").hide()
+
 print("ok")

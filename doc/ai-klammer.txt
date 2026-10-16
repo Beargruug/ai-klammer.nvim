@@ -9,8 +9,9 @@ CONTENTS                                                  *ai-klammer-contents*
   4. Commands ............................. |ai-klammer-commands|
   5. Triggers ............................. |ai-klammer-triggers|
   6. Asking ............................... |ai-klammer-asking|
-  7. Highlights ........................... |ai-klammer-highlights|
-  8. State ................................ |ai-klammer-state|
+  7. Project questions .................... |ai-klammer-project|
+  8. Highlights ........................... |ai-klammer-highlights|
+  9. State ................................ |ai-klammer-state|
 
 ==============================================================================
 1. INTRODUCTION                                       *ai-klammer-introduction*
@@ -60,6 +61,7 @@ With lazy.nvim: >lua
       system = "You are the Klammer, ...",
       context_lines = 30,
       max_lines = 400,
+      project_budget = 6000,
       blocklist = { ".env", "*.pem", "*secret*", ... },
       redact = true,
       consent = nil,
@@ -67,12 +69,16 @@ With lazy.nvim: >lua
   })
 <
 annoyance ~
-    0 to 3. Sets the minimum gap between quips:
+    0 to 3. Sets the minimum gap between quips, and how often the Klammer
+    says something with no point to it at all:
 
         0   silent, no autocmds, no greeting, no paperclip
-        1   15 minutes
-        2   5 minutes
-        3   1 minute
+        1   15 minutes, jokes very rarely
+        2   5 minutes, jokes rarely
+        3   1 minute, jokes often
+
+    There is no separate switch for the jokes: turning them down is turning
+    the Klammer down. See the `idle` trigger in |ai-klammer-triggers|.
 
 language ~
     "en" or "de". `nil` reads |v:lang|.
@@ -129,6 +135,10 @@ ai.context_lines ~
 ai.max_lines ~
     The Klammer refuses to read a bigger range than this in one go.
 
+ai.project_budget ~
+    Roughly how many tokens of search hits |:Klammer| `project` may send,
+    counted at four characters to the token. See |ai-klammer-project|.
+
 ai.blocklist ~
     Globs for files the Klammer never reads and never mentions, see
     |ai-klammer-privacy|. A glob without a slash is matched against the file
@@ -156,6 +166,9 @@ ai.consent ~
                         or the lines nearby. See |ai-klammer-asking|.
 :[range]Klammer ask {q} Ask {q} about the same code. Without {q} it asks you
                         first through |vim.ui.input()|.
+:Klammer project {q}    Ask {q} about the whole repository instead of the
+                        buffer. See |ai-klammer-project|. Without {q} it asks
+                        you first through |vim.ui.input()|.
 
 In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger,
 `q` or `<Esc>` to dismiss. Answering closes the bubble; the Klammer stays in
@@ -180,6 +193,17 @@ git ~
 
 diagnostics ~
     |CursorHold| and |BufWritePost|. Fires at `diagnostics_count` errors.
+
+idle ~
+    |CursorHold|. Checks nothing. Every so often the Klammer simply says
+    something, and the something is of no use to anybody. This is the only
+    trigger with no question behind it, so its bubble has no buttons, never
+    takes your cursor and fades after four seconds on its own.
+
+    It is deliberately not context-aware: it does not look at your code, so
+    it sends nothing and needs no consent. The chance comes from `annoyance`;
+    on top of that it keeps its own half-hour cooldown, so a joke can never
+    crowd out a trigger that had something real to say.
 
 ==============================================================================
 6. ASKING                                                   *ai-klammer-asking*
@@ -276,8 +300,8 @@ It asks once ~
     the question for a config that must never prompt.
 
 It never reads certain files ~
-    Anything matching `ai.blocklist` is refused: by |:Klammer| `explain` and
-    `ask`, and by the triggers, so no bubble ever appears in such a file
+    Anything matching `ai.blocklist` is refused: by |:Klammer| `explain`,
+    `ask` and `project`, and by the triggers, so no bubble appears in it
     offering to help. The default list covers `.env`, `.env.*`, `*.pem`,
     `*.key`, `*.p12`, `*.pfx`, `*.kdbx`, `*.tfvars`, `*secret*`,
     `*credential*`, `id_rsa*`, `id_ecdsa*`, `id_ed25519*`, `.netrc`,
@@ -322,7 +346,38 @@ callback can call them directly. A table without a `stream` function is
 rejected in |ai_klammer.setup()|, not at the first question.
 
 ==============================================================================
-7. HIGHLIGHTS                                           *ai-klammer-highlights*
+7. PROJECT QUESTIONS                                       *ai-klammer-project*
+
+|:Klammer| `project` {q} searches the repository rather than the buffer: >
+
+  :Klammer project why does the consent prompt fire twice
+<
+The content words come out of {q} — at most eight, filler words dropped — and
+go to `rg` as fixed strings, up to three hits per file. The files that matched
+are sent best first, together with one line naming the directories in the
+repository so the model knows what kind of project it is looking at.
+
+Best means the file matching the most *different* keywords, not the one with
+the most matching lines. Counting lines puts the changelog above the code,
+because prose repeats one common word while the file that owns the thing hits
+several of them.
+
+Files are added until `ai.project_budget` tokens are used up, so a question
+about a very common word sends the most relevant files rather than all of
+them. Overlong lines are cut at 200 characters, so one minified file cannot
+take the budget on its own.
+
+`ai.blocklist` and `ai.redact` apply here exactly as they do to the current
+buffer: a hit inside a blocklisted file is dropped before anything is sent,
+and keys in the matching lines are redacted.
+
+This needs `rg` (https://github.com/BurntSushi/ripgrep) on your |$PATH|.
+Without it the Klammer says so; |:checkhealth| `ai_klammer` reports it too.
+`rg` honours your `.gitignore`, so build output and vendored dependencies stay
+out on their own.
+
+==============================================================================
+8. HIGHLIGHTS                                           *ai-klammer-highlights*
 
 All are linked with `default`, so a colorscheme can override them.
 
@@ -331,7 +386,7 @@ All are linked with `default`, so a colorscheme can override them.
     AiKlammerButton     the button row      (Question)
 
 ==============================================================================
-8. STATE                                                     *ai-klammer-state*
+9. STATE                                                     *ai-klammer-state*
 
 "Never again" choices are stored as JSON in
 `stdpath("data") .. "/ai_klammer.json"`. Delete the file or run

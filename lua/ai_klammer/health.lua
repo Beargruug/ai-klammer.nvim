@@ -81,9 +81,9 @@ function M.check()
   end
 
   if vim.fn.executable("rg") == 1 then
-    vim.health.ok("rg found")
+    vim.health.ok("rg found, :Klammer project works")
   else
-    vim.health.warn("rg not found, needed for project context in v0.4")
+    vim.health.warn("rg not found, so :Klammer project has nothing to search with")
   end
 
   local config = require("ai_klammer").config

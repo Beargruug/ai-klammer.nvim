@@ -4,7 +4,7 @@ local quips = require("ai_klammer.quips")
 
 for _, language in ipairs({ "en", "de" }) do
   local set = require("ai_klammer.quips." .. language)
-  for _, trigger in ipairs({ "greeting", "regex", "git", "diagnostics" }) do
+  for _, trigger in ipairs({ "greeting", "idle", "regex", "git", "diagnostics" }) do
     assert(#set[trigger] >= 10, language .. "/" .. trigger .. " needs at least 10 quips")
     for _, quip in ipairs(set[trigger]) do
       assert(#quip > 0 and not quip:find("%%[^d]"), "bad format string: " .. quip)

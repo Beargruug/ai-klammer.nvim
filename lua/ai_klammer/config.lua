@@ -41,6 +41,8 @@ M.defaults = {
     context_lines = 30,
     -- the Klammer refuses to read more than this in one go
     max_lines = 400,
+    -- rough token ceiling for the search hits :Klammer project sends
+    project_budget = 6000,
     -- files the Klammer never reads, and never admits to not reading. Globs
     -- without a slash match the file name, globs with one match the path.
     blocklist = {
@@ -76,6 +78,11 @@ M.defaults = {
 -- seconds between quips, indexed by annoyance level
 M.cooldowns = { [0] = math.huge, 15 * 60, 5 * 60, 60 }
 
+-- chance per CursorHold that the Klammer says something useless, by annoyance.
+-- ponytail: no separate switch, turning jokes off means turning the Klammer
+-- down. Add ai.jokes if somebody wants the triggers loud and the jokes gone.
+M.chances = { [0] = 0, 0.02, 0.05, 0.12 }
+
 function M.setup(opts)
   local config = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts or {})
 
@@ -100,6 +107,7 @@ function M.setup(opts)
     ["ai.system"] = { config.ai.system, "string" },
     ["ai.context_lines"] = { config.ai.context_lines, "number" },
     ["ai.max_lines"] = { config.ai.max_lines, "number" },
+    ["ai.project_budget"] = { config.ai.project_budget, "number" },
     ["ai.blocklist"] = { config.ai.blocklist, "table" },
     ["ai.redact"] = { config.ai.redact, "boolean" },
     ["ai.consent"] = { config.ai.consent, "boolean", true },
@@ -111,6 +119,7 @@ function M.setup(opts)
 
   config.language = config.language or (vim.v.lang:find("^de") and "de" or "en")
   config.cooldown = M.cooldowns[config.annoyance]
+  config.joke_chance = M.chances[config.annoyance]
 
   return config
 end

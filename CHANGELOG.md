@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `:Klammer project <question>` asks about the whole repository instead of one
+  buffer: the content words of the question go to `ripgrep`, and the files that
+  matched the most of them are sent, best first
+- The prompt carries a one-line map of the repository by directory, so the model
+  knows what kind of project it is looking at
+- `ai.project_budget`, a rough token ceiling (default 6000) on how much of the
+  search result is sent. `ripgrep` is now required for `project` and nothing else
+- An `idle` trigger: every so often the Klammer says something of no use to
+  anybody. No buttons, no cursor stolen, gone after four seconds, and it never
+  reads your code, so there is nothing for it to send. How often comes from
+  `annoyance`; it keeps a half-hour cooldown of its own so it cannot crowd out
+  a trigger with something real to say
+
 ## [0.3.1] — the Klammer learns what not to read
 
 ### Security

@@ -8,6 +8,8 @@ M.checks = {
   require("ai_klammer.triggers.regex"),
   require("ai_klammer.triggers.git"),
   require("ai_klammer.triggers.diagnostics"),
+  -- Last, so a trigger with something real to say schedules its bubble first.
+  require("ai_klammer.triggers.idle"),
 }
 
 local group = vim.api.nvim_create_augroup("AiKlammer", { clear = true })
@@ -36,6 +38,18 @@ end
 
 function M.fire(trigger, count, config)
   state.mark(trigger)
+
+  -- A trigger with no question behind it has nothing to say yes to, so it
+  -- gets the greeting's treatment: no buttons, never takes the cursor, gone
+  -- again in a moment. Interrupting you for a joke would not be a joke.
+  if not require("ai_klammer.ai").questions[trigger] then
+    return bubble.show(quips.pick(trigger, config.language, count), {
+      language = config.language,
+      focus = false,
+      timeout = 4000,
+    })
+  end
+
   bubble.show(quips.pick(trigger, config.language, count), {
     language = config.language,
     mood = "thinking",
@@ -54,10 +68,12 @@ local function run(event, buf, config)
     return
   end
   for _, check in ipairs(M.checks) do
-    if vim.tbl_contains(check.events, event) and state.can_fire(check.name, config.cooldown) then
+    -- A check may ask to be rarer than the shared cooldown, never louder.
+    local cooldown = math.max(check.cooldown or 0, config.cooldown)
+    if vim.tbl_contains(check.events, event) and state.can_fire(check.name, cooldown) then
       check.check(buf, config, function(count)
         vim.schedule(function()
-          if count and not bubble.is_open() and state.can_fire(check.name, config.cooldown) then
+          if count and not bubble.is_open() and state.can_fire(check.name, cooldown) then
             M.fire(check.name, count, config)
           end
         end)
