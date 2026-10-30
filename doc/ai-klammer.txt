@@ -49,6 +49,7 @@ With lazy.nvim: >lua
   require("ai_klammer").setup({
     annoyance = 2,
     language = nil,
+    animate = true,
     ignore_filetypes = { "help", "qf", "netrw", "oil", "lazy", "mason",
                          "gitcommit", "TelescopePrompt", "ai_klammer" },
     git_lines = 300,
@@ -83,6 +84,12 @@ annoyance ~
 
 language ~
     "en" or "de". `nil` reads |v:lang|.
+
+animate ~
+    `true` types every quip into its bubble a few characters at a time and
+    makes the Klammer hop when it starts talking. AI answers are never typed
+    in, they stream in on their own. A fading bubble starts its countdown
+    once the text is complete. `false` for neither.
 
 ignore_filetypes ~
     Filetypes the Klammer stays out of. Special buffers (|'buftype'| set) are

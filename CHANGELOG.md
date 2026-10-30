@@ -25,8 +25,15 @@ All notable changes to this project are documented here. The format follows
   timestamps in the state file; `:Klammer reset` keeps them, deleting the file
   forgets them, `annoyance = 0` records nothing
 
+- Quips are typed into the bubble a few characters at a time, and the Klammer
+  hops when it starts talking. The bubble opens at its final size, so nothing
+  jumps, and a fading bubble starts its countdown once the text is complete.
+  AI answers are left alone. `animate = false` turns both off
+
 ### Changed
 
+- The Klammer's window is one row taller, an empty row of headroom to hop
+  into, so the bubble sits one row higher than before
 - Quips are dealt like cards instead of rolled: every quip in a list is said
   once before any of them twice, and never the same one twice in a row
 

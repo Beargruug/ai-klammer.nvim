@@ -25,7 +25,12 @@ local body = {
 }
 
 M.width = 5
-M.height = #body
+-- One empty row of headroom on top, so it can hop without leaving its window
+-- and ducking under the bubble's border.
+M.height = #body + 1
+M.eyes_row = 5
+
+local blank = (" "):rep(M.width)
 
 --- How long without a keypress before the Klammer nods off, in milliseconds.
 M.sleep_after = 5 * 60 * 1000
@@ -37,6 +42,7 @@ local gaze -- "left" | "right" | nil when looking straight out
 local blinking = false
 local asleep = false
 local snore = 0 -- 0 quiet, 1 a z beside the head, 2 a Z above it
+local hopping = false
 local last_active = vim.uv.now()
 
 --- Blink beats sleep beats reaction beats mood beats gaze.
@@ -71,6 +77,12 @@ local function render()
     lines[2] = lines[2]:sub(1, 4) .. "z"
   elseif asleep and snore == 2 then
     lines[1] = lines[1]:sub(1, 4) .. "Z"
+  end
+  -- Standing on the bottom row with the headroom above, or mid-hop in it.
+  if hopping then
+    lines[#lines + 1] = blank
+  else
+    table.insert(lines, 1, blank)
   end
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -172,6 +184,19 @@ function M.gaze_for(col, columns)
     return "right"
   end
   return nil
+end
+
+--- A little hop when it has something to say: up into the headroom, and down.
+function M.hop()
+  if hopping or not M.is_open() then
+    return
+  end
+  hopping = true
+  render()
+  vim.defer_fn(function()
+    hopping = false
+    render()
+  end, 150)
 end
 
 function M.look(direction)

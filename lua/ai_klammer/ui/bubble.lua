@@ -61,11 +61,62 @@ function M.is_open()
   return win ~= nil and vim.api.nvim_win_is_valid(win)
 end
 
+--- Characters per frame, and milliseconds per frame, for the typewriter.
+M.chars_per_frame = 2
+M.frame = 15
+
+-- Bumped by every write that is not the typewriter's own, which stops it.
+local typing = 0
+
+--- Type the text in instead of dropping it. The window already has its final
+--- size, so nothing jumps; lines fill in a few characters at a time, counted
+--- in characters so an ö is never cut in half, and the last `held` lines (the
+--- buttons) appear once the text is done.
+--- @return integer ms how long the typing takes
+local function type_out(lines, held)
+  local this = typing
+  local text_lines = #lines - held
+  local total = 0
+  for index = 1, text_lines do
+    total = total + vim.fn.strchars(lines[index])
+  end
+
+  local shown = 0
+  local function frame()
+    local out, left = {}, shown
+    for index, line in ipairs(lines) do
+      if index <= text_lines then
+        local length = vim.fn.strchars(line)
+        out[index] = vim.fn.strcharpart(line, 0, math.max(0, math.min(length, left)))
+        left = left - length
+      else
+        out[index] = shown >= total and line or ""
+      end
+    end
+    write(out)
+  end
+  local function step()
+    if this ~= typing or not M.is_open() then
+      return
+    end
+    shown = shown + M.chars_per_frame
+    frame()
+    if shown < total then
+      vim.defer_fn(step, M.frame)
+    end
+  end
+
+  frame()
+  vim.defer_fn(step, M.frame)
+  return math.ceil(total / M.chars_per_frame) * M.frame
+end
+
 --- Replace the open bubble's text and regrow it. Used while an answer streams in.
 function M.update(text)
   if not M.is_open() then
     return
   end
+  typing = typing + 1
   local lines = wrap(text, MAX_WIDTH)
   write(lines)
   vim.api.nvim_win_set_config(win, float(lines))
@@ -74,6 +125,7 @@ function M.update(text)
 end
 
 function M.close()
+  typing = typing + 1
   local focused = M.is_open() and vim.api.nvim_get_current_win() == win
   if M.is_open() then
     vim.api.nvim_win_close(win, true)
@@ -88,7 +140,9 @@ end
 
 --- The Klammer stays put; the bubble only changes its mood.
 --- @param text string
---- @param opts? table { language, mood, buttons, focus, timeout, on_yes, on_no, on_never }
+--- @param opts? table { language, mood, buttons, focus, timeout, animate, on_yes, on_no, on_never }
+--- `animate` types the text in and makes the Klammer hop; for quips, not for
+--- answers, which arrive a piece at a time on their own.
 function M.show(text, opts)
   opts = opts or {}
   M.close()
@@ -115,6 +169,11 @@ function M.show(text, opts)
   win = vim.api.nvim_open_win(buf, focus, float(lines))
   vim.wo[win].winhighlight = "NormalFloat:AiKlammerBubble,FloatBorder:AiKlammerBubble"
   avatar.show(opts.mood or "neutral")
+  local typing_time = 0
+  if opts.animate then
+    avatar.hop()
+    typing_time = type_out(lines, buttons and 2 or 0)
+  end
 
   local function answer(callback)
     return function()
@@ -150,8 +209,9 @@ function M.show(text, opts)
       vim.schedule(close_this)
     end,
   })
+  -- The timeout starts once the text is all there, or a long quip fades half-read.
   if opts.timeout then
-    vim.defer_fn(close_this, opts.timeout)
+    vim.defer_fn(close_this, opts.timeout + typing_time)
   end
   return win
 end

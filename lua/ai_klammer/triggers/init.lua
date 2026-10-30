@@ -45,6 +45,7 @@ function M.fire(trigger, count, config)
   if not require("ai_klammer.ai").questions[trigger] then
     return bubble.show(quips.remark(trigger, config.language, vim.bo.filetype), {
       language = config.language,
+      animate = config.animate,
       focus = false,
       timeout = 4000,
     })
@@ -52,6 +53,7 @@ function M.fire(trigger, count, config)
 
   bubble.show(quips.pick(trigger, config.language, count), {
     language = config.language,
+    animate = config.animate,
     mood = "thinking",
     buttons = true,
     on_yes = function()
@@ -63,6 +65,7 @@ function M.fire(trigger, count, config)
       if require("ai_klammer.memory").milestone(count) then
         bubble.show(quips.pick("noes", config.language, count), {
           language = config.language,
+          animate = config.animate,
           mood = "annoyed",
           focus = false,
           timeout = 4000,

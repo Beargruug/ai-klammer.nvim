@@ -52,4 +52,53 @@ for _ = 1, 5 do
 end
 assert(#vim.api.nvim_list_bufs() == before, "closed bubbles leave no buffers behind")
 
+-- A quip is typed in, not dropped in. The window opens at its final size so
+-- nothing jumps, and the buttons come once the text is there.
+local function text(win)
+  return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 0, -1, false)
+end
+local quip = "Schön, dich zu sehen. Ich habe in deiner Abwesenheit alles zusammengehalten."
+local typed = bubble.show(quip, { language = "de", buttons = true, animate = true, focus = false })
+local final = vim.api.nvim_win_get_config(typed)
+local first = text(typed)
+assert(#first[1] < 10, "it starts out nearly empty: " .. first[1])
+assert(first[#first] == "", "no buttons yet")
+
+local frames = {}
+vim.wait(3000, function()
+  local cfg = vim.api.nvim_win_get_config(typed)
+  assert(cfg.width == final.width and cfg.height == final.height, "the window does not change size while typing")
+  local now = text(typed)
+  frames[#frames + 1] = now
+  return now[#now] == bubble.buttons.de.line
+end)
+local done = text(typed)
+assert(done[#done] == bubble.buttons.de.line, "the buttons, once the text is done")
+assert(table.concat(done, " "):find("zusammengehalten.", 1, true), "and all of the text")
+local partial = 0
+for _, frame in ipairs(frames) do
+  for index, line in ipairs(frame) do
+    -- Cut at a character, never in the middle of the bytes of an ö.
+    local cut = vim.fn.strcharpart(done[index], 0, vim.fn.strchars(line))
+    assert(cut == line, ("line %d is not a prefix of %q: %q"):format(index, done[index], line))
+  end
+  if frame[1] ~= "" and frame[1] ~= done[1] then
+    partial = partial + 1
+  end
+end
+assert(partial > 0, "there was something in between")
+
+-- Anything that writes the bubble itself stops the typing for good.
+local interrupted = bubble.show(quip, { language = "de", animate = true, focus = false })
+bubble.update("Kurz.")
+vim.wait(300)
+assert(text(interrupted)[1] == "Kurz.", "the typewriter does not write over it: " .. text(interrupted)[1])
+bubble.close()
+
+-- Fading bubbles get the typing time on top, or long quips vanish half-read.
+local slow = bubble.show(("lang "):rep(40), { language = "de", animate = true, focus = false, timeout = 100 })
+vim.wait(300)
+assert(vim.api.nvim_win_is_valid(slow), "still open: the timeout starts after the typing")
+bubble.close()
+
 print("ok")

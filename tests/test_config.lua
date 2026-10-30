@@ -10,6 +10,10 @@ assert(config.setup({ annoyance = 0 }).annoyance == 0, "annoyance should be over
 assert(config.setup({ language = "de" }).language == "de", "language should be overridable")
 assert(config.defaults.annoyance == 2, "setup must not mutate defaults")
 
+assert(defaults.animate == true, "quips are typed in by default")
+assert(config.setup({ animate = false }).animate == false, "and that can be turned off")
+assert(not pcall(config.setup, { animate = "slowly" }), "animate is a yes or a no")
+
 assert(not pcall(config.setup, { annoyance = "loud" }), "wrong type should fail")
 assert(not pcall(config.setup, { annoyance = 9 }), "out of range should fail")
 

@@ -7,7 +7,7 @@ local function line(row)
   return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), row - 1, row, false)[1]
 end
 local function eyes()
-  return line(4)
+  return line(avatar.eyes_row)
 end
 assert(eyes() == "@  @ ", "it starts out looking at you")
 
@@ -56,13 +56,25 @@ avatar.look(nil)
 avatar.sleep()
 assert(avatar.asleep() and eyes() == "-  - ", "eyes shut")
 vim.wait(2500, function()
-  return line(1):find("Z") or line(2):find("z")
+  return line(avatar.eyes_row - 3):find("Z") or line(avatar.eyes_row - 2):find("z")
 end)
-assert(line(1):find("Z") or line(2):find("z"), "a z drifts up above its head")
+assert(line(avatar.eyes_row - 3):find("Z") or line(avatar.eyes_row - 2):find("z"), "a z drifts up above its head")
 avatar.poke()
 assert(not avatar.asleep(), "any keypress wakes it")
 assert(eyes() == "O  O ", "startled")
-assert(not line(1):find("Z") and not line(2):find("z"), "the snoring stops")
+assert(not line(avatar.eyes_row - 3):find("Z") and not line(avatar.eyes_row - 2):find("z"), "the snoring stops")
+
+-- It hops when it has something to say: into the headroom above it and back.
+vim.wait(1000) -- let the start of the wake-up pass
+local top = avatar.eyes_row - 3
+assert(line(top - 1):match("^%s*$"), "a free row above its head")
+avatar.hop()
+assert(line(top - 1) == " __  ", "up it goes")
+assert(line(avatar.height):match("^%s*$"), "feet off the ground")
+vim.wait(500, function()
+  return line(top) == " __  "
+end)
+assert(line(top) == " __  " and line(top - 1):match("^%s*$"), "and back down")
 
 -- Showing up for a bubble wakes it too.
 avatar.sleep()

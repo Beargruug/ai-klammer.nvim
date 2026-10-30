@@ -5,6 +5,8 @@ M.defaults = {
   annoyance = 2,
   -- nil = detect from v:lang
   language = nil,
+  -- quips are typed in and the Klammer hops when it speaks; false for neither
+  animate = true,
   -- buffers the Klammer keeps out of
   ignore_filetypes = {
     "help",
@@ -97,6 +99,7 @@ function M.setup(opts)
 
   validate("annoyance", config.annoyance, "number")
   validate("language", config.language, "string", true)
+  validate("animate", config.animate, "boolean")
   validate("ignore_filetypes", config.ignore_filetypes, "table")
   validate("git_lines", config.git_lines, "number")
   validate("diagnostics_count", config.diagnostics_count, "number")

@@ -7,7 +7,7 @@ local config = require("ai_klammer.config").setup()
 reactions.setup(config)
 local win = avatar.show("neutral")
 local function eyes()
-  return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 3, 4, false)[1]
+  return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), avatar.eyes_row - 1, avatar.eyes_row, false)[1]
 end
 
 local buf = vim.api.nvim_get_current_buf()

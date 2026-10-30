@@ -53,6 +53,7 @@ require("ai_klammer").setup({
   annoyance = 2, -- 0 = silent, 1 = 15 min, 2 = 5 min, 3 = 1 min between quips,
                  -- and how often it says something with no point to it at all
   language = nil, -- "en" | "de", nil detects from v:lang
+  animate = true, -- quips are typed in and the Klammer hops when it speaks
   ignore_filetypes = { "help", "qf", "netrw", "oil", "lazy", "mason", "gitcommit", "TelescopePrompt" },
   git_lines = 300, -- changed lines against HEAD before the Klammer says something
   diagnostics_count = 5, -- errors in the buffer before the Klammer says something
@@ -244,7 +245,8 @@ half-hour cooldown on top, so a joke can never crowd out a trigger that had a re
 Between bubbles it keeps a face, and the face keeps up with you. It blinks at odd moments,
 sometimes twice. Its eyes follow the cursor across the editor (`◐  ◐` / `◑  ◑`). It smiles at
 a save with no errors, winces when the error count goes up, jumps at a thirty-line paste, and
-falls asleep after five minutes alone, waking with a start when you come back. No bubble, no
+falls asleep after five minutes alone, waking with a start when you come back. When it has
+something to say it hops and types the quip in; `animate = false` stops both. No bubble, no
 cooldown, and it never reads your code. See `:help ai-klammer-faces`.
 
 ## Memory

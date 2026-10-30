@@ -186,7 +186,12 @@ assert(pcall(late_chunk, "too late"), "a late chunk from a provider without a ha
 -- knocked out when it breaks.
 local avatar = require("ai_klammer.ui.avatar")
 local function face()
-  return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(avatar.show()), 3, 4, false)[1]
+  return vim.api.nvim_buf_get_lines(
+    vim.api.nvim_win_get_buf(avatar.show()),
+    avatar.eyes_row - 1,
+    avatar.eyes_row,
+    false
+  )[1]
 end
 local chunk, finish
 local talking = require("ai_klammer.config").setup({
