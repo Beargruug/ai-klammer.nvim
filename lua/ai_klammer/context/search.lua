@@ -124,12 +124,14 @@ end
 --- @return string|nil body ready to send
 --- @return string|nil reason "no_rg" or "no_hits"
 function M.gather(question, config)
-  if vim.fn.executable("rg") == 0 then
-    return nil, "no_rg"
-  end
+  -- Before the rg check: a question with nothing to grep for is no search,
+  -- with or without ripgrep, and installing it would not change the answer.
   local words = M.keywords(question)
   if #words == 0 then
     return nil, "no_hits"
+  end
+  if vim.fn.executable("rg") == 0 then
+    return nil, "no_rg"
   end
 
   -- Fixed strings, because the keywords come out of prose and nobody typing a

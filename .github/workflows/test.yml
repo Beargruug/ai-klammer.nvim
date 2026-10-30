@@ -18,6 +18,8 @@ jobs:
         with:
           neovim: true
           version: ${{ matrix.neovim }}
+      # So the end-to-end :Klammer project search in test_search.lua runs too.
+      - run: sudo apt-get install -y ripgrep
       - run: for t in tests/test_*.lua; do nvim -l "$t" || exit 1; done
 
   stylua:

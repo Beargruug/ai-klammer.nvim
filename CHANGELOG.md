@@ -16,6 +16,8 @@ All notable changes to this project are documented here. The format follows
   when the bubble was dismissed while the answer was still streaming
 - `setup()` no longer uses the table form of `vim.validate`, deprecated since
   Neovim 0.11 and flagged by `:checkhealth vim.deprecated`
+- `:Klammer project` with a question of only stopwords asked you to install
+  ripgrep when ripgrep was missing, though it had nothing to search for anyway
 
 ## [0.4.0] — the Klammer looks around
 
