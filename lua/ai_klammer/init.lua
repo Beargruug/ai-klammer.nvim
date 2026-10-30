@@ -8,6 +8,7 @@ function M.setup(opts)
   math.randomseed(vim.uv.hrtime())
   M.config = require("ai_klammer.config").setup(opts)
   require("ai_klammer.triggers").setup(M.config)
+  require("ai_klammer.reactions").setup(M.config)
   if M.config.annoyance > 0 then
     if vim.v.vim_did_enter == 1 then
       M.greet()

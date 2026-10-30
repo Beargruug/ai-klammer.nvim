@@ -206,6 +206,21 @@ idle ~
     on top of that it keeps its own half-hour cooldown, so a joke can never
     crowd out a trigger that had something real to say.
 
+FACES                                                        *ai-klammer-faces*
+
+Between bubbles the Klammer keeps a face. None of this opens a bubble, has a
+cooldown, or reads your code; `annoyance = 0` turns it off with the rest.
+
+    @  @    looking at you; blinks every two to eight seconds, sometimes twice
+    ◐  ◐    the cursor is in the left third of the editor (◑  ◑ the right),
+            unless 'ambiwidth' is "double", where it looks straight ahead
+    ^  ^    you saved with no errors, or it finished an answer
+    >  <    the error count just went up (never in insert mode)
+    O  O    twenty or more lines appeared or vanished at once, or it woke up
+    o  o    thinking about your question
+    x  x    the request failed
+    -  -    asleep after five minutes without a keypress, z's drifting up
+
 ==============================================================================
 6. ASKING                                                   *ai-klammer-asking*
 

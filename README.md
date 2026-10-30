@@ -237,6 +237,14 @@ after four seconds. It is deliberately *not* context-aware: it never reads your 
 is nothing it could send. How often it happens comes from `annoyance`, and it keeps its own
 half-hour cooldown on top, so a joke can never crowd out a trigger that had a real point to make.
 
+## Faces
+
+Between bubbles it keeps a face, and the face keeps up with you. It blinks at odd moments,
+sometimes twice. Its eyes follow the cursor across the editor (`◐  ◐` / `◑  ◑`). It smiles at
+a save with no errors, winces when the error count goes up, jumps at a thirty-line paste, and
+falls asleep after five minutes alone, waking with a start when you come back. No bubble, no
+cooldown, and it never reads your code. See `:help ai-klammer-faces`.
+
 ## Commands
 
 | Command                   | Description                                             |

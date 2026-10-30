@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The Klammer has a face between bubbles: it blinks at irregular moments,
+  follows the cursor with its eyes, smiles at a clean save, winces at new
+  errors, jumps at a big paste or undo, and falls asleep after five idle
+  minutes. Faces only, so no bubble, no cooldown, and nothing is read
+- Its face follows an answer: thinking until the first word, pleased when
+  done, `x  x` when the request fails
+
 ### Fixed
 
 - The Klammer said the same greeting on every start: the random generator is

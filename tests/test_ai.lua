@@ -178,6 +178,37 @@ vim.schedule_wrap = real_schedule_wrap
 require("ai_klammer").hide()
 assert(pcall(late_chunk, "too late"), "a late chunk from a provider without a handle is ignored")
 
+-- The face follows the answer: thinking until it talks, pleased when done,
+-- knocked out when it breaks.
+local avatar = require("ai_klammer.ui.avatar")
+local function face()
+  return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(avatar.show()), 3, 4, false)[1]
+end
+local chunk, finish
+local talking = require("ai_klammer.config").setup({
+  ai = {
+    consent = true,
+    provider = {
+      stream = function(_, _, on_chunk, on_done)
+        chunk, finish = on_chunk, on_done
+      end,
+    },
+  },
+})
+vim.schedule_wrap = function(fn)
+  return fn
+end
+ai.run("Why?", nil, talking)
+vim.schedule_wrap = real_schedule_wrap
+assert(face() == "o  o ", "thinking while it waits")
+chunk("It ")
+assert(face() == "@  @ ", "talking once the first word is in")
+finish(nil)
+assert(face() == "^  ^ ", "pleased with itself when it is done")
+finish("boom")
+assert(face() == "x  x ", "knocked out when it fails")
+require("ai_klammer").hide()
+
 -- Nothing leaves the machine before the question has been answered once.
 local asked = require("ai_klammer.config").setup({
   ai = {

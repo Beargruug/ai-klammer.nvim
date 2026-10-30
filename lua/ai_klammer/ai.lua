@@ -53,8 +53,11 @@ local function say(language, key, ...)
   return (set[key] or phrases.en[key]):format(...)
 end
 
+--- A broken request knocks the Klammer out; everything else merely annoys it.
+local moods = { failed = "dead", unreachable = "dead", silent = "dead" }
+
 local function complain(config, key, ...)
-  bubble.show(say(config.language, key, ...), { language = config.language, mood = "annoyed" })
+  bubble.show(say(config.language, key, ...), { language = config.language, mood = moods[key] or "annoyed" })
 end
 
 --- A provider is anything with a stream function. `ai.provider` is either one
@@ -172,6 +175,10 @@ function M.send(question, body, config)
     if not bubble.is_open() then
       return handle and handle:kill(15)
     end
+    -- Done thinking once it starts talking.
+    if answer == "" then
+      require("ai_klammer.ui.avatar").set_mood("neutral")
+    end
     answer = answer .. text
     bubble.update(answer)
   end)
@@ -186,6 +193,9 @@ function M.send(question, body, config)
       complain(config, "failed", err)
     elseif vim.trim(answer) == "" then
       complain(config, "silent")
+    else
+      -- Faintly pleased with itself, as per the system prompt.
+      require("ai_klammer.ui.avatar").react("happy")
     end
   end)
 
