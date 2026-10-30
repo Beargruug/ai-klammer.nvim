@@ -14,6 +14,10 @@ All notable changes to this project are documented here. The format follows
   minutes. Faces only, so no bubble, no cooldown, and nothing is read
 - Its face follows an answer: thinking until the first word, pleased when
   done, `x  x` when the request fails
+- Remarks about the moment: the idle quips and the greeting now sometimes
+  comment on the hour (night, early morning), the day (Monday morning, Friday
+  afternoon, the weekend), a session over two hours, or the filetype, in
+  English and German. Clock and filetype only, still never your code
 
 ### Fixed
 

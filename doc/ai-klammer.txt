@@ -201,8 +201,11 @@ idle ~
     trigger with no question behind it, so its bubble has no buttons, never
     takes your cursor and fades after four seconds on its own.
 
-    It is deliberately not context-aware: it does not look at your code, so
-    it sends nothing and needs no consent. The chance comes from `annoyance`;
+    It does not look at your code, so it sends nothing and needs no consent.
+    It does look at the clock and the 'filetype': when it is past midnight,
+    early morning, Monday morning, Friday after three, the weekend, more than
+    two hours into the session, or a filetype it has an opinion on, half its
+    remarks are about that instead. The startup greeting does the same. The chance comes from `annoyance`;
     on top of that it keeps its own half-hour cooldown, so a joke can never
     crowd out a trigger that had something real to say.
 

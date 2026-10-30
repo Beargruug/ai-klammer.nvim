@@ -233,8 +233,10 @@ In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger, `q`/`<
 
 `idle` is the exception. It checks nothing, it has nothing to offer, and the remark is of no use
 to anybody — that is the feature. Its bubble has no buttons, never takes your cursor, and fades
-after four seconds. It is deliberately *not* context-aware: it never reads your code, so there
-is nothing it could send. How often it happens comes from `annoyance`, and it keeps its own
+after four seconds. It never reads your code, so there is nothing it could send. It does know
+what time it is and what language the file is in, so half the time, when there is something to
+say about that, it says that instead: past midnight, Monday morning, Friday after three, the
+weekend, a session over two hours, or YAML. The startup greeting works the same way. How often it happens comes from `annoyance`, and it keeps its own
 half-hour cooldown on top, so a joke can never crowd out a trigger that had a real point to make.
 
 ## Faces

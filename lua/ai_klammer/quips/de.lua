@@ -61,4 +61,129 @@ return {
     "%d Fehler. Der Compiler und ich sind beide enttäuscht.",
     "Immer noch %d Fehler. Ich warte. Ich habe ja sonst nichts vor.",
   },
+  -- Uhr und Kalender, siehe quips.moments(). long_session bekommt die Stunden
+  -- als %d; kein anderer Moment darf überhaupt ein % enthalten.
+  moments = {
+    night = {
+      "Es ist mitten in der Nacht. Die Bugs sind auch wach.",
+      "Um diese Uhrzeit wurde noch nie etwas Gutes committet. Ich habe nachgesehen.",
+      "Spät, oder? Ich schlafe nicht, aber du solltest.",
+      "Um diese Zeit heißt jede Variable temp2.",
+      "Nachtschicht. Nur wir zwei und der Cursor.",
+    },
+    early = {
+      "Früher wach als der Kaffee. Mutig.",
+      "Früher Start. Der Code ist genau so, wie du ihn verlassen hast. Leider.",
+      "Guten Morgen. Ich war die ganze Nacht so gebogen.",
+      "Noch ist niemand wach, um das zu reviewen. Lass es dabei.",
+    },
+    monday = {
+      "Montag. Tun wir so, als wäre der Code von letzter Woche von jemand anderem.",
+      "Montagmorgen. Senk deine Erwartungen, ich habe es schon getan.",
+      "Neue Woche, gleiche Klammer.",
+      "Montag. Was du am Freitag gepusht hast, ist immer noch da.",
+    },
+    friday = {
+      "Freitagnachmittag. Leg das Deployment hin und tritt einen Schritt zurück.",
+      "Freitag, nach drei. Nichts, was du jetzt schreibst, bleibt gut in Erinnerung.",
+      "Ein Refactoring am Freitag. Mutig, auf die Art, die im Postmortem endet.",
+      "Das Wochenende ist nah. Der Merge-Konflikt ist näher.",
+    },
+    weekend = {
+      "Es ist Wochenende. Uns beide bezahlt keiner dafür.",
+      "Programmieren am Wochenende. Nur zum Spaß, sagen sie alle.",
+      "Kein Standup heute. Keiner fragt, warum das so lange gedauert hat.",
+      "Ein Nebenprojekt am Wochenende? Ich sage es niemandem.",
+    },
+    long_session = {
+      "%d Stunden dabei. Deine Haltung wird schlechter. Meine auch, und ich bin aus Draht.",
+      "Du sitzt seit %d Stunden daran. Es gibt Wasser.",
+      "%d Stunden. Ich habe Gletscher öfter committen sehen.",
+      "%d Stunden ohne Pause. Selbst ich biege mich mal gerade.",
+    },
+  },
+  -- Nach Neovim-Filetype. Der Name der Sprache, nie was darin geschrieben steht.
+  filetypes = {
+    lua = {
+      "Es sieht aus, als schreibst du Lua. Arrays fangen bei eins an, ich auch.",
+      "Lua. Hier ist alles eine Tabelle. Ich fühle mich langsam wie ein Möbelstück.",
+    },
+    python = {
+      "Es sieht aus, als schreibst du Python. Achte auf die Leerzeichen, sie achten auf dich.",
+      "Python. Irgendwo ist gerade das falsche virtualenv aktiv.",
+    },
+    javascript = {
+      "Es sieht aus, als schreibst du JavaScript. Mein Beileid an this.",
+      "JavaScript. '1' + 1 lässt grüßen.",
+    },
+    typescript = {
+      "TypeScript. Du darfst any schreiben, ich schaue weg.",
+      "Es sieht aus, als schreibst du TypeScript. Der Compiler hat Anmerkungen.",
+    },
+    yaml = {
+      "Es sieht aus, als schreibst du YAML. Das tut mir leid.",
+      "YAML. Ein Leerzeichen zu viel, und es bedeutet etwas ganz anderes.",
+      "YAML. Norwegen ist ein Land, kein Boolean. YAML sieht das anders.",
+    },
+    json = {
+      "JSON. Keine Kommentare erlaubt. Passt mir gut.",
+      "JSON. Ich spüre schon das Komma am Ende kommen.",
+    },
+    markdown = {
+      "Es sieht aus, als schreibst du Dokumentation. Das habe ich noch nie gesehen.",
+      "Markdown. Endlich eine Datei ohne Bugs. Abwarten.",
+    },
+    rust = {
+      "Rust. Der Borrow Checker und ich schauen beide zu.",
+      "Es sieht aus, als schreibst du Rust. Hast du es schon allen erzählt?",
+    },
+    go = {
+      "Go. if err != nil, und so weiter, für immer.",
+      "Es sieht aus, als schreibst du Go. Generics sind jetzt erlaubt. Nur so.",
+    },
+    sh = {
+      "Ein Shellskript. Setz deine Variablen in Anführungszeichen. Alle.",
+      "Shell. Jedes Leerzeichen ist eine Entscheidung mit Folgen.",
+    },
+    html = {
+      "HTML. Verschachtelte Divs. Ich respektiere einen Kollegen, der Dinge zusammenhält.",
+      "Es sieht aus, als schreibst du HTML. Schließ deine Tags, ich schließe meine.",
+    },
+    css = {
+      "CSS. Zentriert Dinge seit jeher, irgendwann.",
+      "Es sieht aus, als schreibst du CSS. !important ist keine Persönlichkeit.",
+    },
+    sql = {
+      "SQL. Hatte das DELETE ein WHERE? Ich frage ja nur.",
+      "Es sieht aus, als schreibst du SQL. SELECT * ist ein Hilferuf.",
+    },
+    dockerfile = {
+      "Ein Dockerfile. Läuft auf meinem Rechner, und jetzt auf allen.",
+      "Dockerfile. Pinne deine Versionen. latest ist eine Stimmung, kein Tag.",
+    },
+    make = {
+      "Ein Makefile. Tabs, keine Leerzeichen, sonst redet es nicht mit dir.",
+      "Make. Älter als ich, und das will etwas heißen.",
+    },
+    c = {
+      "C. Keine Grenzen, keine Prüfungen, keine Gnade.",
+      "Es sieht aus, als schreibst du C. Gib frei, was du mallocst. Ich schaue zu.",
+    },
+    cpp = {
+      "C++. Es gab drei Wege, das zu lösen, und du hast einen vierten gefunden.",
+      "Es sieht aus, als schreibst du C++. Die Fehlermeldung wird länger als die Datei.",
+    },
+    java = {
+      "Java. Soll ich dir die FactoryFactory halten?",
+      "Es sieht aus, als schreibst du Java. Ich bin eine Büroklammer, keine BüroklammerBean.",
+    },
+    vim = {
+      "Vimscript. Einer muss es ja machen.",
+      "Es sieht aus, als konfigurierst du deinen Editor, statt ihn zu benutzen. Klassiker.",
+    },
+    terraform = {
+      "Terraform. Zweimal planen, einmal anwenden.",
+      "Infrastructure as Code. Downtime als Feature.",
+    },
+  },
 }

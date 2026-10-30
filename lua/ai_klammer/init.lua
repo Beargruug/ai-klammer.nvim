@@ -26,7 +26,8 @@ end
 
 --- Show up with a hello that fades on its own and never takes your cursor.
 function M.greet()
-  require("ai_klammer.ui.bubble").show(require("ai_klammer.quips").pick("greeting", M.config.language), {
+  local quip = require("ai_klammer.quips").remark("greeting", M.config.language, vim.bo.filetype)
+  require("ai_klammer.ui.bubble").show(quip, {
     language = M.config.language,
     focus = false,
     timeout = 3000,

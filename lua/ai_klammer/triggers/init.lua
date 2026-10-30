@@ -43,7 +43,7 @@ function M.fire(trigger, count, config)
   -- gets the greeting's treatment: no buttons, never takes the cursor, gone
   -- again in a moment. Interrupting you for a joke would not be a joke.
   if not require("ai_klammer.ai").questions[trigger] then
-    return bubble.show(quips.pick(trigger, config.language, count), {
+    return bubble.show(quips.remark(trigger, config.language, vim.bo.filetype), {
       language = config.language,
       focus = false,
       timeout = 4000,
