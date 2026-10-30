@@ -9,7 +9,16 @@ function M.setup(opts)
   M.config = require("ai_klammer.config").setup(opts)
   require("ai_klammer.triggers").setup(M.config)
   require("ai_klammer.reactions").setup(M.config)
+  local group = vim.api.nvim_create_augroup("AiKlammerMemory", { clear = true })
   if M.config.annoyance > 0 then
+    -- Off means off: a silenced Klammer does not keep notes on you either.
+    require("ai_klammer.memory").start()
+    vim.api.nvim_create_autocmd("VimLeavePre", {
+      group = group,
+      callback = function()
+        require("ai_klammer.memory").touch()
+      end,
+    })
     if vim.v.vim_did_enter == 1 then
       M.greet()
     else
@@ -26,7 +35,8 @@ end
 
 --- Show up with a hello that fades on its own and never takes your cursor.
 function M.greet()
-  local quip = require("ai_klammer.quips").remark("greeting", M.config.language, vim.bo.filetype)
+  local memory = require("ai_klammer.memory")
+  local quip = memory.greeting(memory.start(), M.config.language, vim.bo.filetype)
   require("ai_klammer.ui.bubble").show(quip, {
     language = M.config.language,
     focus = false,

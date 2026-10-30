@@ -97,6 +97,13 @@ function M.check()
   M.privacy(config, state)
 
   vim.health.info("state file: " .. state.path)
+  local memory = state.memory()
+  vim.health.info(
+    ("it remembers %d sessions and %d noes; delete the state file to make it forget"):format(
+      memory.sessions or 0,
+      memory.noes or 0
+    )
+  )
   local silenced = state.silenced()
   if #silenced > 0 then
     vim.health.info("silenced triggers: " .. table.concat(silenced, ", "))

@@ -1,5 +1,9 @@
 vim.opt.runtimepath:prepend(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h"))
 
+-- The consent tests below reset and refuse: not in the real state file, where
+-- that would wipe the answers of whoever runs the tests.
+require("ai_klammer.state").path = vim.fn.tempname() .. "/ai_klammer.json"
+
 local bubble = require("ai_klammer.ui.bubble")
 local context = require("ai_klammer.context.buffer")
 

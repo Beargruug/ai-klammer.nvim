@@ -412,6 +412,20 @@ All are linked with `default`, so a colorscheme can override them.
 `:Klammer reset` to start over. The cooldown lives in memory and resets with
 Neovim.
 
+Every write re-reads the file first, so two Neovims open at once do not
+overwrite each other's answers.
+
+                                                            *ai-klammer-memory*
+The same file holds what the Klammer remembers about you: how many sessions
+there have been, when it last saw you, how often you said no to a trigger,
+and its last greeting. Counts and timestamps, nothing about your code. It
+uses them to introduce itself the first time, to mark the 10th, 25th, 50th
+and every hundredth session, to notice when you were gone three days or more,
+to suspect your config when you restart within ten minutes, to keep score of
+your noes at the same round numbers, and to never open with yesterday's
+greeting. `annoyance = 0` keeps no notes at all. `:Klammer reset` leaves the
+memory alone, since it is about silencing; delete the file to make it forget.
+
 Run |:checkhealth| `ai_klammer` to see the active config and the state file.
 
 vim:tw=78:ts=8:ft=help:norl:

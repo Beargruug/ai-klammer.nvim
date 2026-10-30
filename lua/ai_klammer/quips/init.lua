@@ -15,6 +15,36 @@ M.same_as = {
   tf = "terraform",
 }
 
+-- list -> the indices not dealt yet, and the one dealt last. Weak keys, so a
+-- quip set reloaded during development does not keep the old tables alive.
+local decks = setmetatable({}, { __mode = "k" })
+local last = setmetatable({}, { __mode = "k" })
+
+--- Like a deck of cards: every quip in the list once before any of them
+--- twice, and a fresh deck never opens with the card the old one ended on.
+--- Rolling the dice per quip repeats one within a handful of bubbles.
+function M.draw(list)
+  local deck = decks[list]
+  if not deck or #deck == 0 then
+    deck = {}
+    for index = 1, #list do
+      deck[index] = index
+    end
+    for index = #deck, 2, -1 do
+      local other = math.random(index)
+      deck[index], deck[other] = deck[other], deck[index]
+    end
+    -- Dealt from the end, so the end is what comes next.
+    if #deck > 1 and deck[#deck] == last[list] then
+      deck[1], deck[#deck] = deck[#deck], deck[1]
+    end
+    decks[list] = deck
+  end
+  local index = table.remove(deck)
+  last[list] = index
+  return list[index]
+end
+
 local function set_for(language)
   local ok, set = pcall(require, "ai_klammer.quips." .. (language or "en"))
   return ok and set or require("ai_klammer.quips.en")
@@ -29,7 +59,7 @@ function M.pick(trigger, language, count)
   if not list or #list == 0 then
     return nil
   end
-  return list[math.random(#list)]:format(count or 0)
+  return M.draw(list):format(count or 0)
 end
 
 --- What is true right now that the Klammer could have an opinion on. The
@@ -83,7 +113,7 @@ function M.remark(trigger, language, filetype, now, started)
   local list = lists[math.random(#lists)]
   -- Only the long-session quips have a %d, and it is the hours so far.
   local hours = math.floor(((now or os.time()) - (started or M.started)) / 3600)
-  return list[math.random(#list)]:format(hours)
+  return M.draw(list):format(hours)
 end
 
 return M

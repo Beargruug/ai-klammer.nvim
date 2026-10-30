@@ -61,6 +61,37 @@ return {
     "%d errors. The compiler and I are both disappointed.",
     "Still %d errors. I will wait. I have nothing else on.",
   },
+  -- What it remembers between sessions, see ai_klammer.memory.
+  first_meeting = {
+    "Hello. I am the Klammer. I live in this corner now.",
+    "First time? I hold things together. Mostly code. Mostly badly.",
+    "Nice to meet you. I will be watching. Supportively.",
+    "New here? So am I. Let us not tell anyone.",
+  },
+  milestone = {
+    "Session number %d. We should get matching tattoos.",
+    "%d sessions. I have kept count. Nobody asked me to.",
+    "%d sessions together. At this point I am load-bearing.",
+    "Session %d. Still bent, still here.",
+  },
+  back_after = {
+    "You were gone %d days. I kept your brackets warm.",
+    "%d days. I assumed you had switched to Emacs.",
+    "Back after %d days. Nothing has changed, I made sure of it.",
+    "%d days away. The code did not fix itself. I checked daily.",
+  },
+  quick_restart = {
+    "Back already? Was it the config again?",
+    "That was quick. Did the plugin manager win?",
+    "You restarted Neovim. It is always the config.",
+    "Gone and back in minutes. I barely had time to miss you.",
+  },
+  noes = {
+    "That is no number %d. I am keeping score.",
+    "No, for the %dth time. I am not hurt. I am wire.",
+    "%d noes. Noted. All of them.",
+    "%d times no. Most would take the hint. I am not most.",
+  },
   -- The clock and the calendar, see quips.moments(). long_session gets the
   -- hours so far as its %d; no other moment may use a % at all.
   moments = {

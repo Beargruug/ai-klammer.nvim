@@ -57,6 +57,18 @@ function M.fire(trigger, count, config)
     on_yes = function()
       require("ai_klammer.ai").run(question(trigger), nil, config)
     end,
+    -- Every no is counted. The round ones get said out loud, briefly.
+    on_no = function()
+      local count = require("ai_klammer.memory").said_no()
+      if require("ai_klammer.memory").milestone(count) then
+        bubble.show(quips.pick("noes", config.language, count), {
+          language = config.language,
+          mood = "annoyed",
+          focus = false,
+          timeout = 4000,
+        })
+      end
+    end,
     on_never = function()
       state.set_never(trigger)
     end,

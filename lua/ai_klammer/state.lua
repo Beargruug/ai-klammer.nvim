@@ -2,17 +2,20 @@ local M = {}
 
 M.path = vim.fn.stdpath("data") .. "/ai_klammer.json"
 
-local data -- { never = { [trigger] = true } }
+local data -- { never = { [trigger] = true }, consent, memory = { ... } }
 local last = {} -- trigger -> seconds, in-memory only
 
-local function read()
-  if data then
-    return data
-  end
+local function load()
   local ok, content = pcall(vim.fn.readfile, M.path)
   local decoded = ok and select(2, pcall(vim.json.decode, table.concat(content, "\n")))
-  data = type(decoded) == "table" and decoded or {}
-  data.never = data.never or {}
+  local fresh = type(decoded) == "table" and decoded or {}
+  fresh.never = fresh.never or {}
+  fresh.memory = fresh.memory or {}
+  return fresh
+end
+
+local function read()
+  data = data or load()
   return data
 end
 
@@ -22,13 +25,30 @@ function M.save()
   vim.fn.writefile({ vim.json.encode(read()) }, M.path)
 end
 
+--- Change the file, not just this Neovim's copy of it. Two Neovims open at
+--- once each hold a copy; writing a stale one back would undo whatever the
+--- other saved since, a consent answer included. So: re-read, change, write.
+--- @param change fun(data: table)
+function M.update(change)
+  data = load()
+  change(data)
+  M.save()
+end
+
 function M.is_never(trigger)
   return read().never[trigger] == true
 end
 
 function M.set_never(trigger)
-  read().never[trigger] = true
-  M.save()
+  M.update(function(fresh)
+    fresh.never[trigger] = true
+  end)
+end
+
+--- What the Klammer remembers about you: sessions, when it last saw you, how
+--- often you said no. See ai_klammer.memory.
+function M.memory()
+  return read().memory
 end
 
 function M.silenced()
@@ -42,16 +62,20 @@ function M.consent()
 end
 
 function M.set_consent(answer)
-  read().consent = answer
-  M.save()
+  M.update(function(fresh)
+    fresh.consent = answer
+  end)
 end
 
 --- Forget every "never again", the cooldown, and the answer to the consent
 --- question, so a refusal is recoverable without deleting the file by hand.
+--- The memory stays: reset is about silencing, not about who you are.
 function M.reset()
-  data = { never = {} }
   last = {}
-  M.save()
+  M.update(function(fresh)
+    fresh.never = {}
+    fresh.consent = nil
+  end)
 end
 
 --- @param cooldown number seconds; math.huge disables the trigger

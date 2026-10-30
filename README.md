@@ -247,6 +247,15 @@ a save with no errors, winces when the error count goes up, jumps at a thirty-li
 falls asleep after five minutes alone, waking with a start when you come back. No bubble, no
 cooldown, and it never reads your code. See `:help ai-klammer-faces`.
 
+## Memory
+
+It remembers you between sessions. It introduces itself the first time, marks the tenth session
+and other round numbers, notices when you were gone for days, suspects your config when you
+restart within ten minutes, keeps score of how often you said no, and never opens with
+yesterday's greeting. Counts and timestamps only, kept in its state file next to the "never
+again" choices. `:Klammer reset` does not touch it; delete the file to make it forget. See
+`:help ai-klammer-memory`.
+
 ## Commands
 
 | Command                   | Description                                             |

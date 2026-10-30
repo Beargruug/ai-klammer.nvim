@@ -56,22 +56,55 @@ end
 
 -- A moment wins only some of the time, so the generic quips still get a turn.
 local en = require("ai_klammer.quips.en")
+local function from(list, quip, count)
+  for _, candidate in ipairs(list) do
+    if candidate:format(count or 0) == quip then
+      return true
+    end
+  end
+  return false
+end
 local real_random = math.random
 math.random = function(n)
-  return n and 1 or 0 -- low roll: take the moment, first of every list
+  return n and real_random(n) or 0 -- low roll: take the moment
 end
-assert(quips.remark("idle", "en", "yaml", at(4, 14)) == en.filetypes.yaml[1], "the filetype is a moment")
-assert(quips.remark("idle", "en", "typescriptreact", at(4, 14)) == en.filetypes.typescript[1], "tsx is TypeScript")
+assert(from(en.filetypes.yaml, quips.remark("idle", "en", "yaml", at(4, 14))), "the filetype is a moment")
+assert(from(en.filetypes.typescript, quips.remark("idle", "en", "typescriptreact", at(4, 14))), "tsx is TypeScript")
 for alias, filetype in pairs(quips.same_as) do
   assert(en.filetypes[filetype], alias .. " points at " .. filetype .. ", which has no quips")
 end
 local three_hours = quips.remark("idle", "en", nil, at(4, 14), at(4, 11))
-assert(three_hours == en.moments.long_session[1]:format(3), "the session length is filled in: " .. three_hours)
+assert(from(en.moments.long_session, three_hours, 3), "the session length is filled in: " .. three_hours)
 math.random = function(n)
-  return n and 1 or 0.99 -- high roll: the generic list
+  return n and real_random(n) or 0.99 -- high roll: the generic list
 end
-assert(quips.remark("idle", "en", "yaml", at(4, 14)) == en.idle[1], "a high roll is the plain quip")
+assert(from(en.idle, quips.remark("idle", "en", "yaml", at(4, 14))), "a high roll is the plain quip")
 math.random = real_random
+
+-- Like a deck of cards: every quip once before any of them twice.
+local deck = { "a", "b", "c", "d", "e" }
+local dealt = {}
+for _ = 1, #deck do
+  local card = quips.draw(deck)
+  assert(not dealt[card], "dealt twice before the deck ran out: " .. card)
+  dealt[card] = true
+end
+-- And a fresh deck never opens with the card the last one ended on.
+local previous
+for _ = 1, 500 do
+  local card = quips.draw(deck)
+  assert(card ~= previous, "the same quip twice in a row: " .. card)
+  previous = card
+end
+assert(quips.draw({ "only" }) == "only" and quips.draw({ "only" }) == "only", "a deck of one still deals")
+
+-- pick() goes through the deck too, so a whole list is said before a repeat.
+local said = {}
+for _ = 1, #en.diagnostics do
+  local quip = quips.pick("diagnostics", "en", 7)
+  assert(not said[quip], "repeated before the list ran out: " .. quip)
+  said[quip] = true
+end
 assert(quips.remark("idle", "en", "unknown_ft", at(4, 14)), "nothing special still says something")
 assert(quips.remark("greeting", "de", "lua", at(4, 3)), "greetings get moments too")
 

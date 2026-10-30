@@ -19,6 +19,17 @@ All notable changes to this project are documented here. The format follows
   afternoon, the weekend), a session over two hours, or the filetype, in
   English and German. Clock and filetype only, still never your code
 
+- Memory between sessions: the Klammer introduces itself the first time,
+  marks round session counts, notices days away and quick restarts, keeps
+  score of your noes, and never opens with the previous greeting. Counts and
+  timestamps in the state file; `:Klammer reset` keeps them, deleting the file
+  forgets them, `annoyance = 0` records nothing
+
+### Changed
+
+- Quips are dealt like cards instead of rolled: every quip in a list is said
+  once before any of them twice, and never the same one twice in a row
+
 ### Fixed
 
 - The Klammer said the same greeting on every start: the random generator is
@@ -29,6 +40,10 @@ All notable changes to this project are documented here. The format follows
   when the bubble was dismissed while the answer was still streaming
 - `setup()` no longer uses the table form of `vim.validate`, deprecated since
   Neovim 0.11 and flagged by `:checkhealth vim.deprecated`
+- Two Neovims open at once could overwrite each other's "never again" and
+  consent answers; every write to the state file now re-reads it first
+- The test suite reset the real state file, wiping the consent and "never
+  again" answers of whoever ran it
 - `:Klammer project` with a question of only stopwords asked you to install
   ripgrep when ripgrep was missing, though it had nothing to search for anyway
 
