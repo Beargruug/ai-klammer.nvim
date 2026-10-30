@@ -145,7 +145,7 @@ require("ai_klammer").setup({
       --- @param config table     the resolved config, so ai.model and ai.url are yours to use
       --- @param on_chunk fun(text: string)  append to the bubble; safe from any thread
       --- @param on_done fun(err: string|nil)  nil means it went fine
-      --- @return table|nil  anything with :kill(), so <Esc> can cut the answer off
+      --- @return table|nil  anything with :kill(), so closing the bubble cuts the answer off
       stream = function(messages, config, on_chunk, on_done)
         return vim.system({ "my-llm", "--model", config.ai.model }, {
           stdin = vim.json.encode(messages),
@@ -158,18 +158,24 @@ require("ai_klammer").setup({
 ```
 
 `on_chunk` and `on_done` are already wrapped in `vim.schedule`, so call them from wherever you
-like. Return `nil` if your provider cannot be cancelled; `<Esc>` then just closes the bubble.
+like. Return `nil` if your provider cannot be cancelled; closing the bubble then just drops the
+rest of the answer.
 A table without a `stream` function is rejected in `setup()`, not at the first question.
 
 ## Asking it things
 
 `:Klammer explain` explains the current selection. With no selection it finds the function
 around your cursor with Treesitter, and falls back to the lines nearby. The answer streams into
-the bubble; `<Esc>` or `q` cuts it off mid-sentence and kills the request.
+the bubble in the corner and your cursor stays where it is, so you can keep working while it
+talks. `:Klammer focus` goes into the bubble to scroll back or copy from it, and `q` or `<Esc>`
+in there closes it and puts you back. `:Klammer close` does the same from anywhere. Closing an
+answer that is still coming cuts it off mid-sentence and kills the request.
 
 ```lua
 vim.keymap.set({ "n", "v" }, "<leader>ke", ":Klammer explain<CR>", { silent = true })
 vim.keymap.set({ "n", "v" }, "<leader>ka", ":Klammer ask ", {})
+vim.keymap.set("n", "<leader>kf", "<cmd>Klammer focus<CR>")
+vim.keymap.set("n", "<leader>kc", "<cmd>Klammer close<CR>")
 ```
 
 In visual mode `:Klammer explain` becomes `:'<,'>Klammer explain` on its own, so the selection
@@ -265,6 +271,8 @@ again" choices. `:Klammer reset` does not touch it; delete the file to make it f
 | `:Klammer hello`          | Say hello                                                |
 | `:Klammer show`           | Bring the paperclip back                                 |
 | `:Klammer hide`           | Send it away for this session                            |
+| `:Klammer focus`          | Go into the bubble to scroll or copy; `q` comes back     |
+| `:Klammer close`          | Close the bubble, cancelling an answer still coming      |
 | `:Klammer reset`          | Forget every "never again" and the cooldown              |
 | `:[range]Klammer explain` | Explain the selection, the function, or the lines nearby |
 | `:[range]Klammer ask [q]` | Ask anything about that code; prompts without `q`        |

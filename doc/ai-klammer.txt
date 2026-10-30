@@ -169,6 +169,11 @@ ai.consent ~
 :Klammer [hello]        Greet, with a bubble.
 :Klammer show           Bring the Klammer back.
 :Klammer hide           Send the Klammer away for this session.
+:Klammer focus          Go into the bubble, to scroll back through an answer
+                        or copy from it. `q` or `<Esc>` closes it and puts the
+                        cursor back where it was.
+:Klammer close          Close the bubble, cancelling an answer still on its
+                        way. The Klammer stays.
 :Klammer reset          Forget every "never again" and reset the cooldown.
 :[range]Klammer explain Explain the range, or the function around the cursor,
                         or the lines nearby. See |ai-klammer-asking|.
@@ -178,9 +183,11 @@ ai.consent ~
                         buffer. See |ai-klammer-project|. Without {q} it asks
                         you first through |vim.ui.input()|.
 
-In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger,
-`q` or `<Esc>` to dismiss. Answering closes the bubble; the Klammer stays in
-the corner and goes back to its neutral face.
+A bubble that asks something (a trigger, the one-time consent question) takes
+the cursor, since it is waiting for a key: `y`/`j` yes, `n` no, `v`/`w` never
+again for that trigger, `q` or `<Esc>` to dismiss. Everything else, answers
+included, stays in the corner and leaves the cursor where it is. Answering
+closes the bubble; the Klammer stays and goes back to its neutral face.
 
 After `:Klammer hide` the next trigger brings it back. Set `annoyance = 0` for
 real silence.
@@ -212,9 +219,11 @@ idle ~
     It does look at the clock and the 'filetype': when it is past midnight,
     early morning, Monday morning, Friday after three, the weekend, more than
     two hours into the session, or a filetype it has an opinion on, half its
-    remarks are about that instead. The startup greeting does the same. The chance comes from `annoyance`;
-    on top of that it keeps its own half-hour cooldown, so a joke can never
-    crowd out a trigger that had something real to say.
+    remarks are about that instead. The startup greeting does the same.
+
+    The chance comes from `annoyance`; on top of that it keeps its own
+    half-hour cooldown, so a joke can never crowd out a trigger that had
+    something real to say.
 
 FACES                                                        *ai-klammer-faces*
 
@@ -252,10 +261,14 @@ request. A handy pair of maps: >lua
   vim.keymap.set({ "n", "v" }, "<leader>ke", ":Klammer explain<CR>",
     { silent = true })
   vim.keymap.set({ "n", "v" }, "<leader>ka", ":Klammer ask ", {})
+  vim.keymap.set("n", "<leader>kf", "<cmd>Klammer focus<CR>")
+  vim.keymap.set("n", "<leader>kc", "<cmd>Klammer close<CR>")
 <
 The answer streams into the bubble as it arrives and the bubble grows with it,
-capped at the window height. `q` or `<Esc>` closes the bubble and kills the
-request, so a rambling model costs nothing.
+capped at the window height. The cursor stays where it was, so you can keep
+working while it talks. |:Klammer| `focus` goes in to scroll back or copy.
+Closing the bubble in any way, `q` or `<Esc>` in it or |:Klammer| `close`
+from anywhere, kills the request, so a rambling model costs nothing.
 
 Saying `y` to a trigger asks the model about what the trigger found. For the
 diagnostics trigger the error messages are sent along with the code.

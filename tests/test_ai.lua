@@ -158,6 +158,71 @@ ai.run("Why?", nil, spy)
 assert(sent[2].content:find("a whole function", 1, true), "the prompt says what kind of snippet it is")
 require("ai_klammer").hide()
 
+-- Asking never takes the cursor: the answer streams into the corner while
+-- you keep working, the way LSP hover does.
+local killed, finish_slow = 0, nil
+local slow = require("ai_klammer.config").setup({
+  ai = {
+    consent = true,
+    provider = {
+      stream = function(_, _, _, on_done)
+        finish_slow = on_done
+        return {
+          kill = function()
+            killed = killed + 1
+          end,
+        }
+      end,
+    },
+  },
+})
+local editor = vim.api.nvim_get_current_win()
+ai.run("Why?", nil, slow)
+assert(bubble.is_open(), "the answer has a bubble")
+assert(vim.api.nvim_get_current_win() == editor, "and the cursor stays where it was")
+
+-- :Klammer focus goes in, to scroll or copy; q closes, cancels, comes back.
+require("ai_klammer").focus()
+assert(vim.api.nvim_get_current_win() ~= editor, "focus goes into the bubble")
+vim.api.nvim_feedkeys("q", "x", false)
+vim.wait(50)
+assert(not bubble.is_open(), "q closes it")
+assert(vim.api.nvim_get_current_win() == editor, "and puts the cursor back")
+assert(killed == 1, "and cancels the request right away, not at the next chunk: " .. killed)
+
+-- :Klammer close does the same from wherever you are, and the Klammer stays.
+ai.run("Why?", nil, slow)
+require("ai_klammer").close()
+assert(not bubble.is_open() and killed == 2, "closed and cancelled")
+assert(require("ai_klammer.ui.avatar").is_open(), "the paperclip stays")
+
+-- A request that already finished is not killed again when its bubble goes.
+ai.run("Why?", nil, slow)
+finish_slow(nil)
+vim.wait(50)
+require("ai_klammer").close()
+assert(killed == 2, "nothing left to cancel")
+
+-- Asking again while an answer streams: the old request is cancelled, and
+-- its dying words must not land in the new bubble or cancel the new request.
+ai.run("First?", nil, slow)
+local first_done = finish_slow
+local before_second = killed
+ai.run("Second?", nil, slow)
+assert(killed == before_second + 1, "the first request is cancelled by the second bubble")
+first_done("killed by signal 15")
+vim.wait(50)
+local second = table.concat(vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(bubble.current()), 0, -1, false))
+assert(not second:find("did not work", 1, true), "the old error stays out of the new bubble: " .. second)
+assert(killed == before_second + 1, "and the new request lives")
+require("ai_klammer").close()
+
+-- Complaints do not take the cursor either.
+ai.run("Why?", { 4, 4 }, slow)
+assert(bubble.is_open(), "a blank selection gets a remark")
+assert(vim.api.nvim_get_current_win() == editor, "in the corner, not under your cursor")
+require("ai_klammer").close()
+
 -- A provider that cannot be cancelled returns nil. A chunk arriving after the
 -- bubble was dismissed then has nothing to kill, and must not throw.
 local late_chunk

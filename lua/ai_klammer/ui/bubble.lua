@@ -11,6 +11,7 @@ M.buttons = {
 
 local ns = vim.api.nvim_create_namespace("ai_klammer_bubble")
 local buf, win, prev_win
+local on_close -- the open bubble's hook, however it ends up closed
 
 local function wrap(text, width)
   local lines = {}
@@ -59,6 +60,11 @@ end
 
 function M.is_open()
   return win ~= nil and vim.api.nvim_win_is_valid(win)
+end
+
+--- @return integer|nil the open bubble's window, to tell one bubble from the next
+function M.current()
+  return M.is_open() and win or nil
 end
 
 --- Characters per frame, and milliseconds per frame, for the typewriter.
@@ -126,8 +132,9 @@ end
 
 function M.close()
   typing = typing + 1
-  local focused = M.is_open() and vim.api.nvim_get_current_win() == win
-  if M.is_open() then
+  local was_open = M.is_open()
+  local focused = was_open and vim.api.nvim_get_current_win() == win
+  if was_open then
     vim.api.nvim_win_close(win, true)
   end
   win = nil
@@ -136,16 +143,37 @@ function M.close()
   end
   prev_win = nil
   avatar.set_mood("neutral")
+  local hook = on_close
+  on_close = nil
+  if was_open and hook then
+    hook()
+  end
+end
+
+--- Go into the bubble, to scroll back through an answer or copy from it.
+--- q or <Esc> closes it and puts the cursor back where it was.
+--- @return boolean false when there is no bubble to go into
+function M.focus()
+  if not M.is_open() then
+    return false
+  end
+  if vim.api.nvim_get_current_win() ~= win then
+    prev_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(win)
+  end
+  return true
 end
 
 --- The Klammer stays put; the bubble only changes its mood.
 --- @param text string
---- @param opts? table { language, mood, buttons, focus, timeout, animate, on_yes, on_no, on_never }
+--- @param opts? table { language, mood, buttons, focus, timeout, animate, on_yes, on_no, on_never, on_close }
 --- `animate` types the text in and makes the Klammer hop; for quips, not for
---- answers, which arrive a piece at a time on their own.
+--- answers, which arrive a piece at a time on their own. `on_close` runs
+--- however the bubble goes: a key, :Klammer close, a timeout, the next bubble.
 function M.show(text, opts)
   opts = opts or {}
   M.close()
+  on_close = opts.on_close
 
   local keys = M.buttons[opts.language] or M.buttons.en
   local buttons = opts.buttons

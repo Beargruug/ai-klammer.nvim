@@ -56,8 +56,13 @@ end
 --- A broken request knocks the Klammer out; everything else merely annoys it.
 local moods = { failed = "dead", unreachable = "dead", silent = "dead" }
 
+--- In the corner, not under your cursor: a remark is read, not answered.
 local function complain(config, key, ...)
-  bubble.show(say(config.language, key, ...), { language = config.language, mood = moods[key] or "annoyed" })
+  bubble.show(say(config.language, key, ...), {
+    language = config.language,
+    mood = moods[key] or "annoyed",
+    focus = false,
+  })
 end
 
 --- A provider is anything with a stream function. `ai.provider` is either one
@@ -166,14 +171,28 @@ function M.send(question, body, config)
     { role = "user", content = question .. "\n\n" .. body },
   }
 
-  local handle
+  local handle, mine
+  local finished, cancelled = false, false
   local answer = ""
+
+  -- Once, and only while it runs. A provider that cannot be cancelled
+  -- returned no handle; its text is simply dropped.
+  local function cancel()
+    if handle and not finished and not cancelled then
+      cancelled = true
+      handle:kill(15)
+    end
+  end
+  -- This request's bubble, not just any: a second question replaces it, and
+  -- the first one's last words must not land in the second one's bubble.
+  local function ours()
+    return mine ~= nil and bubble.current() == mine
+  end
 
   local on_chunk = vim.schedule_wrap(function(text)
     -- The bubble is gone: the user walked away, so stop paying for tokens.
-    -- A provider that cannot be cancelled returned no handle; just drop the text.
-    if not bubble.is_open() then
-      return handle and handle:kill(15)
+    if not ours() then
+      return cancel()
     end
     -- Done thinking once it starts talking.
     if answer == "" then
@@ -184,7 +203,8 @@ function M.send(question, body, config)
   end)
 
   local on_done = vim.schedule_wrap(function(err)
-    if not bubble.is_open() then
+    finished = true
+    if not ours() then
       return
     end
     if err and err:lower():find("connect") then
@@ -200,14 +220,13 @@ function M.send(question, body, config)
   end)
 
   consented(config, function()
-    bubble.show(say(config.language, "thinking"), {
+    -- The answer streams into the corner while you keep working; :Klammer
+    -- focus to scroll it, and closing it in any way cancels the request.
+    mine = bubble.show(say(config.language, "thinking"), {
       language = config.language,
       mood = "thinking",
-      on_no = function()
-        if handle then
-          handle:kill(15)
-        end
-      end,
+      focus = false,
+      on_close = cancel,
     })
     handle = provider.stream(messages, config, on_chunk, on_done)
   end)

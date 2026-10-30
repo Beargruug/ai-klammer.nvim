@@ -30,8 +30,17 @@ All notable changes to this project are documented here. The format follows
   jumps, and a fading bubble starts its countdown once the text is complete.
   AI answers are left alone. `animate = false` turns both off
 
+- `:Klammer focus` goes into the bubble to scroll back or copy, `q` returns;
+  `:Klammer close` closes the bubble from anywhere and cancels an answer
+  still coming
+
 ### Changed
 
+- Answers and remarks no longer take the cursor: they stream into the corner
+  while you keep working. Only bubbles that ask something (a trigger, the
+  consent question) still focus, since they wait for a key
+- Closing an answer bubble in any way cancels the request at once, instead
+  of at the next chunk, which could be seconds while the model was thinking
 - The Klammer's window is one row taller, an empty row of headroom to hop
   into, so the bubble sits one row higher than before
 - Quips are dealt like cards instead of rolled: every quip in a list is said
@@ -39,6 +48,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Asking a second question while the first answer was streaming put the
+  first one's "killed" error into the new bubble, which also cancelled the
+  new request
 - The Klammer said the same greeting on every start: the random generator is
   now seeded in `setup()`
 - Every bubble left a hidden scratch buffer behind; closed bubbles now wipe

@@ -94,6 +94,18 @@ function M.explain(_, range)
   ai.run(ai.questions.explain, range, M.config)
 end
 
+--- Go into the bubble, to scroll back through an answer or copy from it.
+function M.focus()
+  if not require("ai_klammer.ui.bubble").focus() then
+    vim.notify("ai-klammer: nothing to focus, no bubble is open", vim.log.levels.INFO, { title = "ai-klammer" })
+  end
+end
+
+--- Close the bubble, cancelling an answer still on its way. The Klammer stays.
+function M.close()
+  require("ai_klammer.ui.bubble").close()
+end
+
 --- Send the Klammer away until :Klammer show or the next trigger.
 function M.hide()
   require("ai_klammer.ui.bubble").close()
