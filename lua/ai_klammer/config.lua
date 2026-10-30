@@ -83,35 +83,38 @@ M.cooldowns = { [0] = math.huge, 15 * 60, 5 * 60, 60 }
 -- down. Add ai.jokes if somebody wants the triggers loud and the jokes gone.
 M.chances = { [0] = 0, 0.02, 0.05, 0.12 }
 
+--- vim.validate(name, value, validator, optional, message) from 0.11 on; the
+--- table form 0.10 knows warns in :checkhealth vim.deprecated and goes in 1.0.
+local function validate(name, value, validator, optional, message)
+  if vim.fn.has("nvim-0.11") == 1 then
+    return vim.validate(name, value, validator, optional, message)
+  end
+  vim.validate({ [name] = { value, validator, message or optional } })
+end
+
 function M.setup(opts)
   local config = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts or {})
 
-  vim.validate({
-    annoyance = { config.annoyance, "number" },
-    language = { config.language, "string", true },
-    ignore_filetypes = { config.ignore_filetypes, "table" },
-    git_lines = { config.git_lines, "number" },
-    diagnostics_count = { config.diagnostics_count, "number" },
-    ai = { config.ai, "table" },
-    ["ai.provider"] = {
-      config.ai.provider,
-      function(provider)
-        return type(provider) == "string" or (type(provider) == "table" and type(provider.stream) == "function")
-      end,
-      "a module name or a table with a stream function",
-    },
-    ["ai.model"] = { config.ai.model, "string", true },
-    ["ai.url"] = { config.ai.url, "string", true },
-    ["ai.api_key"] = { config.ai.api_key, { "string", "function" }, true },
-    ["ai.max_tokens"] = { config.ai.max_tokens, "number" },
-    ["ai.system"] = { config.ai.system, "string" },
-    ["ai.context_lines"] = { config.ai.context_lines, "number" },
-    ["ai.max_lines"] = { config.ai.max_lines, "number" },
-    ["ai.project_budget"] = { config.ai.project_budget, "number" },
-    ["ai.blocklist"] = { config.ai.blocklist, "table" },
-    ["ai.redact"] = { config.ai.redact, "boolean" },
-    ["ai.consent"] = { config.ai.consent, "boolean", true },
-  })
+  validate("annoyance", config.annoyance, "number")
+  validate("language", config.language, "string", true)
+  validate("ignore_filetypes", config.ignore_filetypes, "table")
+  validate("git_lines", config.git_lines, "number")
+  validate("diagnostics_count", config.diagnostics_count, "number")
+  validate("ai", config.ai, "table")
+  validate("ai.provider", config.ai.provider, function(provider)
+    return type(provider) == "string" or (type(provider) == "table" and type(provider.stream) == "function")
+  end, false, "a module name or a table with a stream function")
+  validate("ai.model", config.ai.model, "string", true)
+  validate("ai.url", config.ai.url, "string", true)
+  validate("ai.api_key", config.ai.api_key, { "string", "function" }, true)
+  validate("ai.max_tokens", config.ai.max_tokens, "number")
+  validate("ai.system", config.ai.system, "string")
+  validate("ai.context_lines", config.ai.context_lines, "number")
+  validate("ai.max_lines", config.ai.max_lines, "number")
+  validate("ai.project_budget", config.ai.project_budget, "number")
+  validate("ai.blocklist", config.ai.blocklist, "table")
+  validate("ai.redact", config.ai.redact, "boolean")
+  validate("ai.consent", config.ai.consent, "boolean", true)
   assert(
     config.annoyance >= 0 and config.annoyance <= 3,
     "ai_klammer: annoyance must be between 0 and 3, got " .. tostring(config.annoyance)

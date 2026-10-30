@@ -102,6 +102,8 @@ function M.show(text, opts)
   end
 
   buf = vim.api.nvim_create_buf(false, true)
+  -- A fresh buffer per bubble, so it has to go with the window or they pile up.
+  vim.bo[buf].bufhidden = "wipe"
   vim.bo[buf].filetype = "markdown"
   write(lines)
   if buttons then

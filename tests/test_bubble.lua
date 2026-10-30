@@ -44,4 +44,12 @@ end)
 assert(not bubble.is_open(), "timeout should dismiss the greeting")
 assert(avatar.is_open(), "the Klammer stays once the greeting fades")
 
+-- Every bubble gets a fresh scratch buffer; a closed one must not linger in :ls!.
+local before = #vim.api.nvim_list_bufs()
+for _ = 1, 5 do
+  bubble.show("Again.", { language = "en", focus = false })
+  bubble.close()
+end
+assert(#vim.api.nvim_list_bufs() == before, "closed bubbles leave no buffers behind")
+
 print("ok")

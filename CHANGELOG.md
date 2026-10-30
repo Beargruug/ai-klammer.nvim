@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The Klammer said the same greeting on every start: the random generator is
+  now seeded in `setup()`
+- Every bubble left a hidden scratch buffer behind; closed bubbles now wipe
+  theirs
+- A custom provider returning `nil`, which the README allows, threw an error
+  when the bubble was dismissed while the answer was still streaming
+- `setup()` no longer uses the table form of `vim.validate`, deprecated since
+  Neovim 0.11 and flagged by `:checkhealth vim.deprecated`
+
 ## [0.4.0] — the Klammer looks around
 
 ### Added

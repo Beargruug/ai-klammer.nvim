@@ -154,6 +154,30 @@ ai.run("Why?", nil, spy)
 assert(sent[2].content:find("a whole function", 1, true), "the prompt says what kind of snippet it is")
 require("ai_klammer").hide()
 
+-- A provider that cannot be cancelled returns nil. A chunk arriving after the
+-- bubble was dismissed then has nothing to kill, and must not throw.
+local late_chunk
+local uncancellable = require("ai_klammer.config").setup({
+  ai = {
+    consent = true,
+    provider = {
+      stream = function(_, _, on_chunk)
+        late_chunk = on_chunk
+        return nil
+      end,
+    },
+  },
+})
+-- Unscheduled, so an error surfaces here instead of in a callback nobody checks.
+local real_schedule_wrap = vim.schedule_wrap
+vim.schedule_wrap = function(fn)
+  return fn
+end
+ai.run("Why?", nil, uncancellable)
+vim.schedule_wrap = real_schedule_wrap
+require("ai_klammer").hide()
+assert(pcall(late_chunk, "too late"), "a late chunk from a provider without a handle is ignored")
+
 -- Nothing leaves the machine before the question has been answered once.
 local asked = require("ai_klammer.config").setup({
   ai = {

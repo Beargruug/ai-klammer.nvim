@@ -28,8 +28,9 @@ Since v0.2 it can also read your code and say something about it, see
 
 Fan homage, not affiliated with Microsoft.
 
-Requires Neovim 0.10+, plus the `claude` CLI or an Anthropic API key and
-`curl` for anything AI.
+Requires Neovim 0.10+, plus the `claude` CLI, or `curl` and an API key for
+Anthropic or any OpenAI-compatible endpoint, for anything AI. `ripgrep` for
+|ai-klammer-project|.
 
 ==============================================================================
 2. INSTALLATION                                       *ai-klammer-installation*

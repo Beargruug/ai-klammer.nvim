@@ -3,6 +3,9 @@ local M = {}
 M.config = require("ai_klammer.config").setup()
 
 function M.setup(opts)
+  -- LuaJIT starts from the same seed every time, so without this the Klammer
+  -- greets you with the same line every single morning.
+  math.randomseed(vim.uv.hrtime())
   M.config = require("ai_klammer.config").setup(opts)
   require("ai_klammer.triggers").setup(M.config)
   if M.config.annoyance > 0 then

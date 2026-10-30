@@ -70,7 +70,7 @@ end
 
 --- Ask once, ever, before any code leaves the machine, and remember the answer.
 --- Every path that sends code goes through here: a typed command, a trigger
---- the user only pressed y on, and whatever Phase 4 adds.
+--- the user only pressed y on, and a :Klammer project search.
 local function consented(config, continue)
   local state = require("ai_klammer.state")
   local answer = config.ai.consent
@@ -168,8 +168,9 @@ function M.send(question, body, config)
 
   local on_chunk = vim.schedule_wrap(function(text)
     -- The bubble is gone: the user walked away, so stop paying for tokens.
+    -- A provider that cannot be cancelled returned no handle; just drop the text.
     if not bubble.is_open() then
-      return handle:kill(15)
+      return handle and handle:kill(15)
     end
     answer = answer .. text
     bubble.update(answer)
