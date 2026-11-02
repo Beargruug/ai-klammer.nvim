@@ -66,20 +66,46 @@ local long = search.body(match("min.js", 1, ("y"):rep(5000)), config)
 assert(#long < 300, "a long line is cut: " .. #long)
 
 -- The layout is a map, not a file list: this repo is small but has directories.
-local layout = search.layout()
+local layout = search.layout(vim.fn.systemlist({ "git", "ls-files" }))
 assert(
   layout and layout:find("lua/ai_klammer", 1, true),
   "the repository is described by directory:\n" .. tostring(layout)
 )
 assert(#layout < 1000, "briefly")
+assert(search.layout({}) == nil, "outside a repository there is no map")
+
+--- gather answers through a callback; wait for it.
+local function gather(question)
+  local called, found, reason = false, nil, nil
+  search.gather(question, config, function(body, why)
+    called, found, reason = true, body, why
+  end)
+  assert(
+    vim.wait(5000, function()
+      return called
+    end),
+    "gather never answered"
+  )
+  return found, reason
+end
 
 -- End to end, if the machine has rg: a real search of this repository.
 if vim.fn.executable("rg") == 1 then
-  local found, reason = search.gather("where is the speech bubble drawn", config)
+  local searching = true
+  search.gather("where is the speech bubble drawn", config, function()
+    searching = false
+  end)
+  assert(searching, "the search runs off the main loop, it does not answer on the spot")
+  vim.wait(5000, function()
+    return not searching
+  end)
+
+  local found, reason = gather("where is the speech bubble drawn")
   assert(found, "a question about this repo finds something: " .. tostring(reason))
   assert(found:find("ui/bubble.lua", 1, true), "namely the bubble:\n" .. found)
+  assert(found:find("tracked files", 1, true), "with the map in front:\n" .. found)
 end
 
-assert(select(2, search.gather("why is it so?", config)) == "no_hits", "a question with no keywords is not a search")
+assert(select(2, gather("why is it so?")) == "no_hits", "a question with no keywords is not a search")
 
 print("ok")

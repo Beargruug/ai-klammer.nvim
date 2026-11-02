@@ -145,11 +145,12 @@ end
 function M.project(question, config)
   config = config or require("ai_klammer").config
 
-  local body, reason = require("ai_klammer.context.search").gather(question, config)
-  if not body then
-    return complain(config, reason)
-  end
-  M.send(question, "Matches from this project:\n\n" .. body, config)
+  require("ai_klammer.context.search").gather(question, config, function(body, reason)
+    if not body then
+      return complain(config, reason)
+    end
+    M.send(question, "Matches from this project:\n\n" .. body, config)
+  end)
 end
 
 --- Put a question and an already-assembled block of context to the model.

@@ -31,10 +31,10 @@ end
 --- A map of the repository by directory. The full file list would be a
 --- thousand paths the model cannot use; the search hits below supply the
 --- paths that matter, and this only says what kind of project it is.
---- @return string|nil nil when this is not a git repository
-function M.layout()
-  local files = vim.fn.systemlist({ "git", "ls-files" })
-  if vim.v.shell_error ~= 0 or #files == 0 then
+--- @param files string[] tracked paths, from `git ls-files`
+--- @return string|nil nil when there are none, outside a git repository
+function M.layout(files)
+  if not files or #files == 0 then
     return nil
   end
   local counts, dirs = {}, {}
@@ -120,18 +120,20 @@ function M.body(output, config)
   return config.ai.redact and (secrets.redact(body)) or body
 end
 
---- Search the project for whatever a question is about.
---- @return string|nil body ready to send
---- @return string|nil reason "no_rg" or "no_hits"
-function M.gather(question, config)
+--- Search the project for whatever a question is about. ripgrep and git run
+--- side by side and off the main loop, so a big repository does not freeze
+--- the editor while they read it.
+--- @param done fun(body: string|nil, reason: string|nil) body ready to send,
+--- or a reason, "no_rg" or "no_hits". Runs on the main loop.
+function M.gather(question, config, done)
   -- Before the rg check: a question with nothing to grep for is no search,
   -- with or without ripgrep, and installing it would not change the answer.
   local words = M.keywords(question)
   if #words == 0 then
-    return nil, "no_hits"
+    return done(nil, "no_hits")
   end
   if vim.fn.executable("rg") == 0 then
-    return nil, "no_rg"
+    return done(nil, "no_rg")
   end
 
   -- Fixed strings, because the keywords come out of prose and nobody typing a
@@ -142,12 +144,40 @@ function M.gather(question, config)
     command[#command + 1] = word
   end
 
-  local body = M.body(vim.fn.system(command), config)
-  if not body then
-    return nil, "no_hits"
+  local hits, files
+  local function finish()
+    if not hits or not files then
+      return
+    end
+    local body = M.body(hits, config)
+    if not body then
+      return done(nil, "no_hits")
+    end
+    local layout = M.layout(files)
+    done(layout and (layout .. "\n\n" .. body) or body)
   end
-  local layout = M.layout()
-  return layout and (layout .. "\n\n" .. body) or body
+
+  vim.system(
+    command,
+    { text = true },
+    vim.schedule_wrap(function(result)
+      hits = result.stdout or ""
+      finish()
+    end)
+  )
+  -- vim.system throws on a missing executable, and the map is optional.
+  if vim.fn.executable("git") == 0 then
+    files = {}
+    return
+  end
+  vim.system(
+    { "git", "ls-files" },
+    { text = true },
+    vim.schedule_wrap(function(result)
+      files = result.code == 0 and vim.split(result.stdout or "", "\n", { trimempty = true }) or {}
+      finish()
+    end)
+  )
 end
 
 return M

@@ -11,6 +11,18 @@ assert(not state.can_fire("git", 60), "cooldown is shared across triggers")
 assert(state.can_fire("git", 0), "zero cooldown lets everything through")
 assert(not state.can_fire("git", math.huge), "annoyance 0 blocks everything")
 
+-- Regression: once every trigger had a timestamp of its own, the shared clock
+-- was never read, so regex spoke up a minute after git.
+state.reset()
+state.mark("regex", 0)
+state.mark("git", 21 * 60)
+assert(not state.can_fire("regex", 300, 300, 22 * 60), "git fired a minute ago, so regex waits")
+assert(state.can_fire("regex", 300, 300, 26 * 60), "and speaks once the shared cooldown is over")
+-- The jokes keep their own, longer clock on top of the shared one.
+state.mark("idle", 0)
+assert(not state.can_fire("idle", 1800, 300, 27 * 60), "idle waits half an hour since the last joke")
+assert(state.can_fire("idle", 1800, 300, 30 * 60), "and no longer")
+
 assert(not state.is_never("git"), "nothing silenced yet")
 state.set_never("git")
 assert(state.is_never("git"), "never again should stick")

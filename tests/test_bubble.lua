@@ -95,6 +95,19 @@ vim.wait(300)
 assert(text(interrupted)[1] == "Kurz.", "the typewriter does not write over it: " .. text(interrupted)[1])
 bubble.close()
 
+-- A streaming answer follows its newest line, unless you went in to scroll.
+local long_answer = ("word "):rep(400)
+local streaming = bubble.show("...", { language = "en", focus = false })
+bubble.update(long_answer)
+local bottom = vim.api.nvim_win_get_cursor(streaming)[1]
+assert(bottom > 1, "unfocused, it shows the newest line")
+assert(bubble.focus(), "focus goes in")
+vim.api.nvim_win_set_cursor(streaming, { 1, 0 })
+bubble.update(long_answer .. "more")
+assert(vim.api.nvim_win_get_cursor(streaming)[1] == 1, "focused, the next chunk leaves the cursor where you put it")
+bubble.close()
+assert(vim.api.nvim_get_current_win() == editor, "closing puts the cursor back")
+
 -- Fading bubbles get the typing time on top, or long quips vanish half-read.
 local slow = bubble.show(("lang "):rep(40), { language = "de", animate = true, focus = false, timeout = 100 })
 vim.wait(300)

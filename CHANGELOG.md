@@ -48,6 +48,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The shared cooldown stopped counting once every trigger had fired once, so
+  one trigger could speak up a minute after another; now both its own
+  cooldown and the shared one have to be over
+- Scrolling back through an answer with `:Klammer focus` while it was still
+  streaming jumped you to the bottom with every new word
+- `:Klammer project` froze Neovim while ripgrep and git read the repository;
+  both now run in the background
 - Asking a second question while the first answer was streaming put the
   first one's "killed" error into the new bubble, which also cancelled the
   new request

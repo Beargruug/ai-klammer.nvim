@@ -127,7 +127,10 @@ function M.update(text)
   write(lines)
   vim.api.nvim_win_set_config(win, float(lines))
   -- The window caps out at screen height, so keep the newest line in view.
-  vim.api.nvim_win_set_cursor(win, { #lines, 0 })
+  -- Not while you are in it: you went in to scroll back, so stay there.
+  if vim.api.nvim_get_current_win() ~= win then
+    vim.api.nvim_win_set_cursor(win, { #lines, 0 })
+  end
 end
 
 function M.close()

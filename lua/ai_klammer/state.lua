@@ -78,17 +78,26 @@ function M.reset()
   end)
 end
 
---- @param cooldown number seconds; math.huge disables the trigger
-function M.can_fire(trigger, cooldown)
+--- Two clocks: this trigger's own, and the one every trigger shares. Both have
+--- to have run out, or a trigger that fired long ago would speak up a minute
+--- after another one did.
+--- @param cooldown number seconds since this trigger; math.huge disables it
+--- @param shared? number seconds since any trigger, `cooldown` by default
+--- @param now? integer os.time(), for tests
+function M.can_fire(trigger, cooldown, shared, now)
   if M.is_never(trigger) or cooldown == math.huge then
     return false
   end
-  local previous = last[trigger] or last.__any
-  return previous == nil or os.time() - previous >= cooldown
+  now = now or os.time()
+  local function elapsed(previous, seconds)
+    return previous == nil or now - previous >= seconds
+  end
+  return elapsed(last[trigger], cooldown) and elapsed(last.__any, shared or cooldown)
 end
 
-function M.mark(trigger)
-  last[trigger] = os.time()
+--- @param now? integer os.time(), for tests
+function M.mark(trigger, now)
+  last[trigger] = now or os.time()
   last.__any = last[trigger]
 end
 

@@ -85,10 +85,10 @@ local function run(event, buf, config)
   for _, check in ipairs(M.checks) do
     -- A check may ask to be rarer than the shared cooldown, never louder.
     local cooldown = math.max(check.cooldown or 0, config.cooldown)
-    if vim.tbl_contains(check.events, event) and state.can_fire(check.name, cooldown) then
+    if vim.tbl_contains(check.events, event) and state.can_fire(check.name, cooldown, config.cooldown) then
       check.check(buf, config, function(count)
         vim.schedule(function()
-          if count and not bubble.is_open() and state.can_fire(check.name, cooldown) then
+          if count and not bubble.is_open() and state.can_fire(check.name, cooldown, config.cooldown) then
             M.fire(check.name, count, config)
           end
         end)
