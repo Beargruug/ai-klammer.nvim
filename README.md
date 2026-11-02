@@ -20,10 +20,11 @@ An ASCII paperclip that lives in the corner of your editor and has opinions abou
 It greets you when Neovim starts, fades the greeting after three seconds, then stays in the
 corner blinking until you send it away. The greeting never takes your cursor.
 
-Status: v0.4.0. It watches, it comments, it explains the function you just highlighted, and it
+Status: v0.5.0. It watches, it comments, it explains the function you just highlighted, and it
 answers questions about the whole repository through Claude, the Anthropic API, or anything
 that speaks OpenAI. It asks before sending anything, and it will not read your `.env`. Every so
-often it says something of no use to anybody at all.
+often it says something of no use to anybody at all. Between bubbles it blinks, follows your
+cursor, falls asleep when you leave, and remembers you the next time.
 
 ## Requirements
 
@@ -125,7 +126,7 @@ is the base URL including the version segment, so the same provider reaches anyt
 ai = { provider = "openai", url = "https://api.groq.com/openai/v1", model = "llama-3.3-70b-versatile" }
 
 -- OpenRouter
-ai = { provider = "openai", url = "https://openrouter.ai/api/v1", model = "anthropic/claude-sonnet-4.5" }
+ai = { provider = "openai", url = "https://openrouter.ai/api/v1", model = "anthropic/claude-sonnet-5.5" }
 
 -- llama.cpp or LM Studio on your own machine, where the key is ignored
 ai = { provider = "openai", url = "http://127.0.0.1:1234/v1", api_key = "none" }

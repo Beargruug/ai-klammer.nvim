@@ -52,6 +52,24 @@ for _ = 1, 5 do
 end
 assert(#vim.api.nvim_list_bufs() == before, "closed bubbles leave no buffers behind")
 
+-- Highlighted like markdown, without markdown's LSPs and ftplugins.
+local markdown_attached = false
+local watch = vim.api.nvim_create_autocmd("FileType", {
+  pattern = "markdown",
+  callback = function()
+    markdown_attached = true
+  end,
+})
+local styled = bubble.show("Some `code`.", { language = "en", focus = false })
+local styled_buf = vim.api.nvim_win_get_buf(styled)
+assert(not markdown_attached, "no FileType markdown for a bubble")
+assert(
+  vim.treesitter.highlighter.active[styled_buf] or vim.bo[styled_buf].syntax == "markdown",
+  "but it still looks like markdown"
+)
+vim.api.nvim_del_autocmd(watch)
+bubble.close()
+
 -- A quip is typed in, not dropped in. The window opens at its final size so
 -- nothing jumps, and the buttons come once the text is there.
 local function text(win)
@@ -107,6 +125,30 @@ bubble.update(long_answer .. "more")
 assert(vim.api.nvim_win_get_cursor(streaming)[1] == 1, "focused, the next chunk leaves the cursor where you put it")
 bubble.close()
 assert(vim.api.nvim_get_current_win() == editor, "closing puts the cursor back")
+
+-- Leaving an answer you went into yourself leaves it open, still streaming.
+local cancelled = false
+local answer = bubble.show("Half an answer", {
+  language = "en",
+  focus = false,
+  on_close = function()
+    cancelled = true
+  end,
+})
+bubble.focus()
+vim.api.nvim_set_current_win(editor)
+vim.wait(50)
+assert(vim.api.nvim_win_is_valid(answer), "walking out of a focused answer keeps it")
+assert(not cancelled, "and the request behind it")
+bubble.close()
+assert(cancelled, "closing it still cancels")
+
+-- A bubble that took the cursor is waiting for a key; walking away answers it.
+local asking = bubble.show("Would you like help?", { language = "en", buttons = true })
+assert(vim.api.nvim_get_current_win() == asking, "it takes the cursor")
+vim.api.nvim_set_current_win(editor)
+vim.wait(50)
+assert(not vim.api.nvim_win_is_valid(asking), "leaving it closes it")
 
 -- Fading bubbles get the typing time on top, or long quips vanish half-read.
 local slow = bubble.show(("lang "):rep(40), { language = "de", animate = true, focus = false, timeout = 100 })

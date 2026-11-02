@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] — the Klammer comes alive
+
 ### Added
 
 - The Klammer has a face between bubbles: it blinks at irregular moments,
@@ -45,6 +47,15 @@ All notable changes to this project are documented here. The format follows
   into, so the bubble sits one row higher than before
 - Quips are dealt like cards instead of rolled: every quip in a list is said
   once before any of them twice, and never the same one twice in a row
+- Saying yes to the regex trigger sends the regex and three lines either
+  side, and says which line it means, instead of the whole function, which
+  could hold any number of strings or be too long to send at all
+- Leaving a bubble you went into with `:Klammer focus` no longer closes it
+  and cancels the answer; only `q`, `<Esc>` and `:Klammer close` do
+- Bubbles are highlighted as markdown without having the markdown filetype,
+  so markdown LSPs and ftplugins no longer attach to them. Their filetype is
+  `ai_klammer_bubble`
+- The `anthropic` provider defaults to `claude-sonnet-5-5`
 
 ### Fixed
 
@@ -55,6 +66,8 @@ All notable changes to this project are documented here. The format follows
   streaming jumped you to the bottom with every new word
 - `:Klammer project` froze Neovim while ripgrep and git read the repository;
   both now run in the background
+- The diagnostics trigger sent the errors of the current buffer, not of the
+  buffer it had counted them in
 - Asking a second question while the first answer was streaming put the
   first one's "killed" error into the new bubble, which also cancelled the
   new request
@@ -159,7 +172,8 @@ An ASCII paperclip in the corner with opinions and no help to offer.
 - Quips in English and German, cooldown and per-trigger "never again" in state
 - `:Klammer hello|show|hide|reset`, `:checkhealth ai_klammer`
 
-[unreleased]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.2.0...v0.3.0

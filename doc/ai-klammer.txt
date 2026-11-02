@@ -111,7 +111,7 @@ ai.provider ~
 
 ai.model ~
     Model handed to the provider. `nil` takes the provider's default:
-    "sonnet" for claude, "claude-sonnet-4-5" for anthropic, "gpt-4o-mini" for
+    "sonnet" for claude, "claude-sonnet-5-5" for anthropic, "gpt-4o-mini" for
     openai.
 
 ai.url ~
@@ -266,12 +266,16 @@ request. A handy pair of maps: >lua
 <
 The answer streams into the bubble as it arrives and the bubble grows with it,
 capped at the window height. The cursor stays where it was, so you can keep
-working while it talks. |:Klammer| `focus` goes in to scroll back or copy.
-Closing the bubble in any way, `q` or `<Esc>` in it or |:Klammer| `close`
-from anywhere, kills the request, so a rambling model costs nothing.
+working while it talks. |:Klammer| `focus` goes in to scroll back or copy;
+the answer keeps arriving without moving your cursor, and leaving the window
+any other way than `q` leaves the bubble open. Closing the bubble, `q` or
+`<Esc>` in it or |:Klammer| `close` from anywhere, kills the request, so a
+rambling model costs nothing.
 
 Saying `y` to a trigger asks the model about what the trigger found. For the
-diagnostics trigger the error messages are sent along with the code.
+regex trigger that is the line with the regex and three lines either side,
+not the whole function. For the diagnostics trigger the error messages are
+sent along with the code.
 
 Run |:checkhealth| `ai_klammer` to see which provider is active, whether its
 command is on your |$PATH| and whether a key is set.

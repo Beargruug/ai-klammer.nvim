@@ -189,7 +189,12 @@ function M.show(text, opts)
   buf = vim.api.nvim_create_buf(false, true)
   -- A fresh buffer per bubble, so it has to go with the window or they pile up.
   vim.bo[buf].bufhidden = "wipe"
-  vim.bo[buf].filetype = "markdown"
+  -- Markdown highlighting, not the markdown filetype: that would attach every
+  -- markdown LSP and ftplugin to a bubble that lives for four seconds.
+  vim.bo[buf].filetype = "ai_klammer_bubble"
+  if not pcall(vim.treesitter.start, buf, "markdown") then
+    vim.bo[buf].syntax = "markdown"
+  end
   write(lines)
   if buttons then
     vim.api.nvim_buf_set_extmark(buf, ns, #lines - 1, 0, { line_hl_group = "AiKlammerButton" })
@@ -233,11 +238,21 @@ function M.show(text, opts)
     end
   end
 
+  -- A bubble that took your cursor is waiting for a key, and walking away is
+  -- an answer too. One you went into with :Klammer focus is still talking:
+  -- leave it however you like and it stays, the answer still coming.
   vim.api.nvim_create_autocmd("WinLeave", {
     buffer = buf,
-    once = true,
     callback = function()
-      vim.schedule(close_this)
+      vim.schedule(function()
+        if focus then
+          return close_this()
+        end
+        -- You found your own way out, so q has nowhere to send you back to.
+        if win == this_win and vim.api.nvim_get_current_win() ~= win then
+          prev_win = nil
+        end
+      end)
     end,
   })
   -- The timeout starts once the text is all there, or a long quip fades half-read.

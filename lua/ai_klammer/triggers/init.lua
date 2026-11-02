@@ -24,19 +24,37 @@ function M.ignored(buf, config)
     or require("ai_klammer.context.secrets").blocked(vim.api.nvim_buf_get_name(buf), config)
 end
 
---- The diagnostics the Klammer counted are not in the code it sends, so spell them out.
-local function question(trigger)
+--- Lines either side of the regex, so the model sees what it is used for.
+M.regex_context = 3
+
+--- What a yes sends: the question, and the lines to send with it. Worked out
+--- when the bubble opens, while the cursor is still where the trigger fired.
+--- @return string question
+--- @return table|nil range { first, last }, nil for the usual function
+local function request(trigger, buf)
   local ai = require("ai_klammer.ai")
+  -- The regex, not the function around it: that could be any of the strings
+  -- in it, or too long to send at all.
+  if trigger == "regex" and buf == vim.api.nvim_get_current_buf() then
+    local row = vim.api.nvim_win_get_cursor(0)[1]
+    local first = math.max(1, row - M.regex_context)
+    local last = math.min(vim.api.nvim_buf_line_count(buf), row + M.regex_context)
+    return ("%s The one I mean is on line %d."):format(ai.questions.regex, row), { first, last }
+  end
   if trigger ~= "diagnostics" then
     return ai.questions[trigger]
   end
+  -- The diagnostics the Klammer counted are not in the code it sends, so
+  -- spell them out, from the buffer that was counted.
   local messages = vim.tbl_map(function(diagnostic)
     return "- " .. diagnostic.message
-  end, vim.diagnostic.get(0, { severity = vim.diagnostic.severity.ERROR }))
+  end, vim.diagnostic.get(buf, { severity = vim.diagnostic.severity.ERROR }))
   return ai.questions.diagnostics .. "\n" .. table.concat(messages, "\n")
 end
 
-function M.fire(trigger, count, config)
+--- @param buf? integer the buffer that set it off, the current one by default
+function M.fire(trigger, count, config, buf)
+  buf = buf or vim.api.nvim_get_current_buf()
   state.mark(trigger)
 
   -- A trigger with no question behind it has nothing to say yes to, so it
@@ -51,13 +69,14 @@ function M.fire(trigger, count, config)
     })
   end
 
+  local question, range = request(trigger, buf)
   bubble.show(quips.pick(trigger, config.language, count), {
     language = config.language,
     animate = config.animate,
     mood = "thinking",
     buttons = true,
     on_yes = function()
-      require("ai_klammer.ai").run(question(trigger), nil, config)
+      require("ai_klammer.ai").run(question, range, config)
     end,
     -- Every no is counted. The round ones get said out loud, briefly.
     on_no = function()
@@ -89,7 +108,7 @@ local function run(event, buf, config)
       check.check(buf, config, function(count)
         vim.schedule(function()
           if count and not bubble.is_open() and state.can_fire(check.name, cooldown, config.cooldown) then
-            M.fire(check.name, count, config)
+            M.fire(check.name, count, config, buf)
           end
         end)
       end)

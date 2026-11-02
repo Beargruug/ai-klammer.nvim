@@ -63,4 +63,50 @@ local shown = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 0, -1, f
 assert(not vim.tbl_contains(shown, bubble.buttons.en.line), "but offers no buttons:\n" .. table.concat(shown, "\n"))
 require("ai_klammer").hide()
 
+-- What a yes sends. ai.run is stubbed: this is about the question, not the answer.
+local ai = require("ai_klammer.ai")
+local real_run = ai.run
+local sent
+ai.run = function(question, range)
+  sent = { question = question, range = range }
+end
+local function yes()
+  vim.api.nvim_feedkeys("y", "x", false)
+  vim.wait(100, function()
+    return sent ~= nil
+  end)
+end
+
+-- The regex, with a few lines around it, not the whole function it sits in.
+local code = vim.api.nvim_create_buf(true, false)
+local body = {}
+for index = 1, 20 do
+  body[index] = "  local x" .. index .. " = 1"
+end
+body[10] = [[  local date = "^(%d%d%d%d)-(%d%d)-(%d%d)$"]]
+vim.api.nvim_buf_set_lines(code, 0, -1, false, body)
+vim.api.nvim_set_current_buf(code)
+vim.api.nvim_win_set_cursor(0, { 10, 0 })
+sent = nil
+triggers.fire("regex", 9, config)
+yes()
+assert(sent, "yes asks")
+assert(vim.deep_equal(sent.range, { 7, 13 }), "the lines around the regex: " .. vim.inspect(sent.range))
+assert(sent.question:find("line 10", 1, true), "and which one is meant: " .. sent.question)
+
+-- Diagnostics are read from the buffer that was counted, not whichever is current.
+local ns = vim.api.nvim_create_namespace("test_triggers")
+local broken = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_buf_set_lines(broken, 0, -1, false, { "oops" })
+vim.diagnostic.set(ns, broken, {
+  { lnum = 0, col = 0, severity = vim.diagnostic.severity.ERROR, message = "undefined global oops" },
+})
+sent = nil
+triggers.fire("diagnostics", 1, config, broken)
+yes()
+assert(sent and sent.question:find("undefined global oops", 1, true), "the counted buffer's errors are spelled out")
+
+ai.run = real_run
+require("ai_klammer").hide()
+
 print("ok")
