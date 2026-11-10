@@ -9,7 +9,7 @@ end
 local function eyes()
   return line(avatar.eyes_row)
 end
-assert(eyes() == "@  @ ", "it starts out looking at you")
+assert(eyes() == "◐  ◐ ", "it starts out looking at you")
 
 -- A face blinks irregularly. A metronome does not count as alive.
 local intervals = {}
@@ -29,10 +29,15 @@ assert(eyes() == "◐  ◐ ", "pupils to the left")
 avatar.look("right")
 assert(eyes() == "◑  ◑ ", "pupils to the right")
 
--- With ambiwidth=double the half circles take two cells and tear the wire.
+-- With ambiwidth=double the half circles take two cells each.
 vim.o.ambiwidth = "double"
-avatar.look("left")
-assert(eyes() == "@  @ ", "so it keeps looking straight ahead")
+avatar.look(nil)
+avatar.look("right")
+assert(eyes() == "◑ ◑", "so one space between them keeps it five cells wide")
+assert(vim.fn.strdisplaywidth(eyes()) == avatar.width, "and the wire in one piece")
+avatar.set_mood("happy")
+assert(eyes() == "^  ^ ", "ASCII faces stay as they are")
+avatar.set_mood("neutral")
 vim.o.ambiwidth = "single"
 avatar.look(nil)
 

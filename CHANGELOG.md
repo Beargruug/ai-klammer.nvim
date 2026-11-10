@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The resting face is `◐  ◐` instead of `@  @`. With `ambiwidth=double`
+  the eyes keep following the cursor, drawn one space apart
+
 ### Fixed
 
 - The git trigger counted lines in blocklisted files, so a big `.env`

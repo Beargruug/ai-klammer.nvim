@@ -9,7 +9,7 @@ An ASCII paperclip that lives in the corner of your editor and has opinions abou
  __    ╭──────────────────────────────────────╮
 /  \   │ It looks like you're writing a       │
 |  |   │ regular expression. Would you like   │
-@  @   │ to have two problems?                │
+◐  ◐   │ to have two problems?                │
 |  |   │                                      │
 || |/  │ [Y]es   [N]o   Ne[v]er again         │
 || ||  ╰──────────────────────────────────────╯

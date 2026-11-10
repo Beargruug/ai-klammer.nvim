@@ -1,7 +1,7 @@
 local M = {}
 
 M.eyes = {
-  neutral = "@  @ ",
+  neutral = "◐  ◐ ",
   blink = "-  - ",
   thinking = "o  o ",
   annoyed = ">  < ",
@@ -56,12 +56,16 @@ local function eyes()
   if mood ~= "neutral" then
     return M.eyes[mood]
   end
-  -- The half circles are ambiguous width: with ambiwidth=double they take
-  -- two cells each and tear the wire apart, so it looks straight ahead.
-  if gaze and vim.o.ambiwidth == "single" then
-    return M.eyes[gaze]
+  return M.eyes[gaze or "neutral"]
+end
+
+--- The half circles are ambiguous width: with ambiwidth=double they take two
+--- cells each, so one space between them keeps the face five cells wide.
+local function fit(face)
+  if vim.o.ambiwidth == "double" and face:find("[◐◑]") then
+    return (face:gsub("^(%S+)%s+(%S+)%s*$", "%1 %2"))
   end
-  return M.eyes.neutral
+  return face
 end
 
 local function render()
@@ -70,7 +74,7 @@ local function render()
   end
   local lines = {}
   for i, line in ipairs(body) do
-    lines[i] = line or eyes()
+    lines[i] = line or fit(eyes())
   end
   -- The free column right of the head, where the z drifts up.
   if asleep and snore == 1 then

@@ -306,7 +306,7 @@ ai.run("Why?", nil, talking)
 vim.schedule_wrap = real_schedule_wrap
 assert(face() == "o  o ", "thinking while it waits")
 chunk("It ")
-assert(face() == "@  @ ", "talking once the first word is in")
+assert(face() == "◐  ◐ ", "talking once the first word is in")
 finish(nil)
 assert(face() == "^  ^ ", "pleased with itself when it is done")
 finish("boom")
