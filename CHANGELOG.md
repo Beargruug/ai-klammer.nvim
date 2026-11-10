@@ -15,6 +15,8 @@ All notable changes to this project are documented here. The format follows
   which could have no errors in it or sit in another buffer altogether, as
   after `:wa`. It now sends the lines around the errors, from the buffer
   that was counted, and names each error with its line
+- `:checkhealth ai_klammer` never warned that the file you ran it from is
+  blocklisted: it checked the report's own buffer instead
 
 ## [0.7.0] — the Klammer gets to the point
 

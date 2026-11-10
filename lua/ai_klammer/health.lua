@@ -59,10 +59,23 @@ function M.privacy(config, state)
       config.ai.redact and "on" or "off, keys in your code will be sent as they are"
     )
   )
-  local name = vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf())
-  if require("ai_klammer.context.secrets").blocked(name, config) then
-    vim.health.warn("this buffer is blocklisted, so the Klammer ignores it on purpose")
+  local buf = M.asked_from()
+  if buf and require("ai_klammer.context.secrets").blocked(vim.api.nvim_buf_get_name(buf), config) then
+    vim.health.warn("the buffer you ran this from is blocklisted, so the Klammer ignores it on purpose")
   end
+end
+
+--- The buffer :checkhealth was run from. By the time a check runs, the
+--- current buffer is the report itself; the one you came from is its
+--- alternate, whether the report opened in a tab or a split.
+--- @return integer|nil
+function M.asked_from()
+  local buf = vim.api.nvim_get_current_buf()
+  if not vim.startswith(vim.api.nvim_buf_get_name(buf), "health://") then
+    return buf
+  end
+  local alternate = vim.fn.bufnr("#")
+  return alternate > 0 and alternate or nil
 end
 
 function M.check()
