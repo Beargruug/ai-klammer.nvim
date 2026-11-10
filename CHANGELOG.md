@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] — the Klammer gets to the point
+
 ### Added
 
 - `ai.brief = true` keeps answers as short as they can be: the answer or
