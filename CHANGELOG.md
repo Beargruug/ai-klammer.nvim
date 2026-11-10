@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Remarks like "That did not work" or "There is nothing there to explain"
+  stayed in the corner until closed; they now fade like answers, by
+  `ai.answer_timeout`
+
 ## [0.6.0] — the Klammer remembers what it said
 
 ### Added

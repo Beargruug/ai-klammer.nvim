@@ -476,6 +476,16 @@ vim.wait(300, function()
 end)
 assert(not vim.api.nvim_win_is_valid(quick_win), "the answer fades once it is complete")
 
+-- So does a complaint: "nothing to explain" is read once, not kept.
+vim.api.nvim_set_current_buf(buf)
+ai.run("Why?", { 4, 4 }, quick)
+local complaint = bubble.current()
+assert(complaint, "a blank selection gets a remark")
+vim.wait(300, function()
+  return not vim.api.nvim_win_is_valid(complaint)
+end)
+assert(not vim.api.nvim_win_is_valid(complaint), "and the remark fades too")
+
 local stays = vim.tbl_deep_extend("force", talker, { ai = { answer_timeout = false } })
 ai.last = nil
 ai.send("Stay?", "code", stays)

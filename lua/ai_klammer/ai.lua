@@ -58,13 +58,26 @@ end
 --- A broken request knocks the Klammer out; everything else merely annoys it.
 local moods = { failed = "dead", unreachable = "dead", silent = "dead" }
 
---- In the corner, not under your cursor: a remark is read, not answered.
+--- Take a bubble away once there has been time to read it, by
+--- ai.answer_timeout. Answers start the clock once they are complete, not
+--- while they stream: a slow model is not a reason to take one away.
+local function fade(win, text, config)
+  local timeout = config.ai.answer_timeout
+  if timeout then
+    bubble.fade(win, timeout == "auto" and M.reading_time(text, config.ai.words_per_minute) or timeout)
+  end
+end
+
+--- In the corner, not under your cursor: a remark is read, not answered, and
+--- goes away again like an answer does.
 local function complain(config, key, ...)
-  bubble.show(say(config.language, key, ...), {
+  local text = say(config.language, key, ...)
+  local win = bubble.show(text, {
     language = config.language,
     mood = moods[key] or "annoyed",
     focus = false,
   })
+  fade(win, text, config)
 end
 
 --- A provider is anything with a stream function. `ai.provider` is either one
@@ -207,15 +220,6 @@ M.last = nil
 --- Answers worth seeing again, newest first: :Klammer history picks from these.
 M.history = {}
 M.history_size = 10
-
---- Once an answer is complete, not while it streams: a slow model is not a
---- reason to take the answer away.
-local function fade(win, answer, config)
-  local timeout = config.ai.answer_timeout
-  if timeout then
-    bubble.fade(win, timeout == "auto" and M.reading_time(answer, config.ai.words_per_minute) or timeout)
-  end
-end
 
 --- End the conversation; the answer stays for :Klammer yank. Only for a
 --- deliberate close: a fade or a quip pushing the answer aside is not you
