@@ -36,9 +36,8 @@ end
 --- Show up with a hello that fades on its own and never takes your cursor.
 function M.greet()
   local memory = require("ai_klammer.memory")
-  local quip = memory.greeting(memory.start(), M.config.language, vim.bo.filetype)
+  local quip = memory.greeting(memory.start(), vim.bo.filetype)
   require("ai_klammer.ui.bubble").show(quip, {
-    language = M.config.language,
     animate = M.config.animate,
     focus = false,
     timeout = 3000,
@@ -47,7 +46,6 @@ end
 
 function M.hello()
   require("ai_klammer.ui.bubble").show("It looks like you're writing code. Would you like help?", {
-    language = M.config.language,
     animate = M.config.animate,
     buttons = true,
   })

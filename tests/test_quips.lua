@@ -2,20 +2,18 @@ vim.opt.runtimepath:prepend(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(
 
 local quips = require("ai_klammer.quips")
 
-for _, language in ipairs({ "en", "de" }) do
-  local set = require("ai_klammer.quips." .. language)
-  for _, trigger in ipairs({ "greeting", "idle", "regex", "git", "diagnostics" }) do
-    assert(#set[trigger] >= 10, language .. "/" .. trigger .. " needs at least 10 quips")
-    for _, quip in ipairs(set[trigger]) do
-      assert(#quip > 0 and not quip:find("%%[^d]"), "bad format string: " .. quip)
-    end
+local set = require("ai_klammer.quips.en")
+for _, trigger in ipairs({ "greeting", "idle", "regex", "git", "diagnostics" }) do
+  assert(#set[trigger] >= 10, trigger .. " needs at least 10 quips")
+  for _, quip in ipairs(set[trigger]) do
+    assert(#quip > 0 and not quip:find("%%[^d]"), "bad format string: " .. quip)
   end
 end
 
-assert(quips.pick("regex", "klingon"), "unknown language falls back to English")
-assert(quips.pick("nope", "en") == nil, "unknown trigger has no quip")
+assert(quips.pick("regex"), "a trigger has its quips")
+assert(quips.pick("nope") == nil, "unknown trigger has no quip")
 
-local counted = quips.pick("git", "en", 412)
+local counted = quips.pick("git", 412)
 assert(not counted:find("%%d"), "no raw placeholder should survive")
 
 -- Moments: the clock and the calendar, never the code.
@@ -37,20 +35,16 @@ assert(has(quips.moments(at(7, 14)), "weekend"), "Saturday")
 assert(not has(quips.moments(at(4, 14), at(4, 13)), "long_session"), "an hour in is fine")
 assert(has(quips.moments(at(4, 14), at(4, 11)), "long_session"), "three hours in is a long session")
 
--- Every moment and every filetype has its quips, in both languages.
-for _, language in ipairs({ "en", "de" }) do
-  local set = require("ai_klammer.quips." .. language)
-  for _, moment in ipairs({ "night", "early", "monday", "friday", "weekend", "long_session" }) do
-    assert(#set.moments[moment] >= 4, language .. "/" .. moment .. " needs at least 4 quips")
-  end
-  for filetype, list in pairs(require("ai_klammer.quips.en").filetypes) do
-    assert(set.filetypes[filetype] and #set.filetypes[filetype] >= 2, language .. " needs quips for " .. filetype)
-    assert(#list >= 2, "en needs at least 2 for " .. filetype)
-  end
-  for _, list in pairs(vim.tbl_extend("error", set.moments, set.filetypes)) do
-    for _, quip in ipairs(list) do
-      assert(not quip:find("%%[^d]"), "bad format string: " .. quip)
-    end
+-- Every moment and every filetype has its quips.
+for _, moment in ipairs({ "night", "early", "monday", "friday", "weekend", "long_session" }) do
+  assert(#set.moments[moment] >= 4, moment .. " needs at least 4 quips")
+end
+for filetype, list in pairs(set.filetypes) do
+  assert(#list >= 2, "needs at least 2 for " .. filetype)
+end
+for _, list in pairs(vim.tbl_extend("error", set.moments, set.filetypes)) do
+  for _, quip in ipairs(list) do
+    assert(not quip:find("%%[^d]"), "bad format string: " .. quip)
   end
 end
 
@@ -68,17 +62,17 @@ local real_random = math.random
 math.random = function(n)
   return n and real_random(n) or 0 -- low roll: take the moment
 end
-assert(from(en.filetypes.yaml, quips.remark("idle", "en", "yaml", at(4, 14))), "the filetype is a moment")
-assert(from(en.filetypes.typescript, quips.remark("idle", "en", "typescriptreact", at(4, 14))), "tsx is TypeScript")
+assert(from(en.filetypes.yaml, quips.remark("idle", "yaml", at(4, 14))), "the filetype is a moment")
+assert(from(en.filetypes.typescript, quips.remark("idle", "typescriptreact", at(4, 14))), "tsx is TypeScript")
 for alias, filetype in pairs(quips.same_as) do
   assert(en.filetypes[filetype], alias .. " points at " .. filetype .. ", which has no quips")
 end
-local three_hours = quips.remark("idle", "en", nil, at(4, 14), at(4, 11))
+local three_hours = quips.remark("idle", nil, at(4, 14), at(4, 11))
 assert(from(en.moments.long_session, three_hours, 3), "the session length is filled in: " .. three_hours)
 math.random = function(n)
   return n and real_random(n) or 0.99 -- high roll: the generic list
 end
-assert(from(en.idle, quips.remark("idle", "en", "yaml", at(4, 14))), "a high roll is the plain quip")
+assert(from(en.idle, quips.remark("idle", "yaml", at(4, 14))), "a high roll is the plain quip")
 math.random = real_random
 
 -- Like a deck of cards: every quip once before any of them twice.
@@ -101,11 +95,11 @@ assert(quips.draw({ "only" }) == "only" and quips.draw({ "only" }) == "only", "a
 -- pick() goes through the deck too, so a whole list is said before a repeat.
 local said = {}
 for _ = 1, #en.diagnostics do
-  local quip = quips.pick("diagnostics", "en", 7)
+  local quip = quips.pick("diagnostics", 7)
   assert(not said[quip], "repeated before the list ran out: " .. quip)
   said[quip] = true
 end
-assert(quips.remark("idle", "en", "unknown_ft", at(4, 14)), "nothing special still says something")
-assert(quips.remark("greeting", "de", "lua", at(4, 3)), "greetings get moments too")
+assert(quips.remark("idle", "unknown_ft", at(4, 14)), "nothing special still says something")
+assert(quips.remark("greeting", "lua", at(4, 3)), "greetings get moments too")
 
 print("ok")

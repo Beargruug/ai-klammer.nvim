@@ -5,9 +5,7 @@ local stopwords = {}
 for word in
   ([[the a an and or but is are was were be been do does did done how what why where which who when this that these
   those there here it its of to in on at for from with without into about as by if then than so not no any all some
-  can could will would should may might must i you we they me my our your their it's whats wheres hows
-  der die das ein eine einen und oder aber ist sind war waren sein wie was warum wo welche wer wann hier dort
-  von zu in auf bei für aus mit ohne über als wenn dann dass nicht kein keine alle etwas ich du wir sie mein unser]]):gmatch(
+  can could will would should may might must i you we they me my our your their it's whats wheres hows]]):gmatch(
     "%S+"
   )
 do

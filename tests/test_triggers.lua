@@ -60,7 +60,7 @@ local win = triggers.fire(idle.name, 1, config)
 assert(bubble.is_open(), "it still says it")
 assert(vim.api.nvim_get_current_win() == before, "and never takes the cursor")
 local shown = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 0, -1, false)
-assert(not vim.tbl_contains(shown, bubble.buttons.en.line), "but offers no buttons:\n" .. table.concat(shown, "\n"))
+assert(not vim.tbl_contains(shown, bubble.buttons.line), "but offers no buttons:\n" .. table.concat(shown, "\n"))
 require("ai_klammer").hide()
 
 -- What a yes sends. ai.run is stubbed: this is about the question, not the answer.

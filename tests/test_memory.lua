@@ -59,18 +59,14 @@ for _, last in ipairs(en.greeting) do
   state.update(function(data)
     data.memory.last_greeting = last
   end)
-  local greeting = memory.greeting(seen, "en", nil, 0.99)
+  local greeting = memory.greeting(seen, nil, 0.99)
   assert(greeting ~= last, "said the same greeting twice: " .. last)
   assert(state.memory().last_greeting == greeting, "and remembers the new one")
 end
-assert(memory.greeting({ sessions = 1 }, "de"), "the first meeting has German quips too")
-
--- Each memory quip exists in both languages.
-for _, language in ipairs({ "en", "de" }) do
-  local set = require("ai_klammer.quips." .. language)
-  for _, list in ipairs({ "first_meeting", "milestone", "back_after", "quick_restart", "noes" }) do
-    assert(set[list] and #set[list] >= 4, language .. "/" .. list .. " needs at least 4 quips")
-  end
+-- Each memory quip list is there, and long enough not to repeat at once.
+for _, list in ipairs({ "first_meeting", "milestone", "back_after", "quick_restart", "noes" }) do
+  local set = require("ai_klammer.quips.en")
+  assert(set[list] and #set[list] >= 4, list .. " needs at least 4 quips")
 end
 
 -- Another Neovim saved an answer since this one read the file: writing the
@@ -93,7 +89,9 @@ assert(state.memory().sessions == sessions, "but not how long you have known eac
 state.update(function(data)
   data.memory.noes = 9
 end)
-local config = require("ai_klammer.config").setup({ language = "en" })
+-- Not typed in: which quip comes up is down to the dice, and 100 ms of
+-- typing shows the number in some of them and not in others.
+local config = require("ai_klammer.config").setup({ animate = false })
 local bubble = require("ai_klammer.ui.bubble")
 require("ai_klammer.triggers").fire("regex", 5, config)
 vim.api.nvim_feedkeys("n", "x", false)

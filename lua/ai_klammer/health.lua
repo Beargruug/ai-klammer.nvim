@@ -101,7 +101,7 @@ function M.check()
 
   local config = require("ai_klammer").config
   M.provider(config)
-  vim.health.info(("annoyance = %d, language = %s"):format(config.annoyance, config.language or "auto"))
+  vim.health.info(("annoyance = %d"):format(config.annoyance))
   if config.annoyance == 0 then
     vim.health.warn("annoyance = 0, the Klammer will never show up")
   end

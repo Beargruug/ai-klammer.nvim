@@ -87,8 +87,7 @@ function M.fire(trigger, count, config, buf)
   -- gets the greeting's treatment: no buttons, never takes the cursor, gone
   -- again in a moment. Interrupting you for a joke would not be a joke.
   if not require("ai_klammer.ai").questions[trigger] then
-    return bubble.show(quips.remark(trigger, config.language, vim.bo[buf].filetype), {
-      language = config.language,
+    return bubble.show(quips.remark(trigger, vim.bo[buf].filetype), {
       animate = config.animate,
       focus = false,
       timeout = 4000,
@@ -96,8 +95,7 @@ function M.fire(trigger, count, config, buf)
   end
 
   local question, range = request(trigger, buf, config)
-  bubble.show(quips.pick(trigger, config.language, count), {
-    language = config.language,
+  bubble.show(quips.pick(trigger, count), {
     animate = config.animate,
     mood = "thinking",
     buttons = true,
@@ -118,8 +116,7 @@ function M.fire(trigger, count, config, buf)
     on_no = function()
       local count = require("ai_klammer.memory").said_no()
       if require("ai_klammer.memory").milestone(count) then
-        bubble.show(quips.pick("noes", config.language, count), {
-          language = config.language,
+        bubble.show(quips.pick("noes", count), {
           animate = config.animate,
           mood = "annoyed",
           focus = false,

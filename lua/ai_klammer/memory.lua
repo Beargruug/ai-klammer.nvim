@@ -85,15 +85,15 @@ end
 
 --- What to say on arrival: the occasion if there is one, otherwise a greeting
 --- that is not the one from last time, even when last time was yesterday.
-function M.greeting(seen, language, filetype, roll)
+function M.greeting(seen, filetype, roll)
   local key, count = M.occasion(seen, roll)
   if key then
-    return quips.pick(key, language, count)
+    return quips.pick(key, count)
   end
   local last = state.memory().last_greeting
   local quip
   for _ = 1, 3 do
-    quip = quips.remark("greeting", language, filetype)
+    quip = quips.remark("greeting", filetype)
     if quip ~= last then
       break
     end

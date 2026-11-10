@@ -3,8 +3,6 @@ local M = {}
 M.defaults = {
   -- 0 = silent, 3 = maximum Klammer
   annoyance = 2,
-  -- nil = detect from v:lang
-  language = nil,
   -- quips are typed in and the Klammer hops when it speaks; false for neither
   animate = true,
   -- buffers the Klammer keeps out of
@@ -134,7 +132,6 @@ function M.setup(opts)
   local config = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts or {})
 
   validate("annoyance", config.annoyance, "number")
-  validate("language", config.language, "string", true)
   validate("animate", config.animate, "boolean")
   validate("ignore_filetypes", config.ignore_filetypes, "table")
   validate("git_lines", config.git_lines, "number")
@@ -173,7 +170,6 @@ function M.setup(opts)
     "ai_klammer: annoyance must be between 0 and 3, got " .. tostring(config.annoyance)
   )
 
-  config.language = config.language or (vim.v.lang:find("^de") and "de" or "en")
   config.cooldown = M.cooldowns[config.annoyance]
   config.joke_chance = M.chances[config.annoyance]
 

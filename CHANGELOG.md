@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- German: the `language` option, the German quips, phrases and `J`/`N`/`W`
+  buttons, and the German stopwords for `:Klammer project`. The Klammer
+  speaks English only. A `language` left in your config is ignored
+
 ### Changed
 
 - `ai.blocklist` adds to the default list instead of replacing it: a list

@@ -4,10 +4,7 @@ local M = {}
 
 local MAX_WIDTH = 46
 
-M.buttons = {
-  en = { line = "[Y]es   [N]o   Ne[v]er again", yes = "y", no = "n", never = "v" },
-  de = { line = "[J]a   [N]ein   Nie [w]ieder", yes = "j", no = "n", never = "w" },
-}
+M.buttons = { line = "[Y]es   [N]o   Ne[v]er again", yes = "y", no = "n", never = "v" }
 
 local ns = vim.api.nvim_create_namespace("ai_klammer_bubble")
 local buf, win, prev_win
@@ -17,7 +14,7 @@ local shown -- the open bubble's full lines, to lay it out again on a resize
 --- Reflow prose to `width` columns. Code keeps its shape: lines inside a ```
 --- fence, and indented lines, are left exactly as they are, or an answer's
 --- example would arrive as one long line of words.
---- Widths are display cells, not bytes, or every ä costs German a column.
+--- Widths are display cells, not bytes, or every ä or emoji costs a column.
 function M.wrap(text, width)
   local lines = {}
   local fenced = false
@@ -202,7 +199,7 @@ end
 
 --- The Klammer stays put; the bubble only changes its mood.
 --- @param text string
---- @param opts? table { language, mood, buttons, focus, timeout, animate, on_yes, on_no, on_never, on_close }
+--- @param opts? table { mood, buttons, focus, timeout, animate, on_yes, on_no, on_never, on_close }
 --- `animate` types the text in and makes the Klammer hop; for quips, not for
 --- answers, which arrive a piece at a time on their own. `on_close` runs
 --- however the bubble goes: a key, :Klammer close, a timeout, the next bubble.
@@ -211,7 +208,7 @@ function M.show(text, opts)
   M.close()
   on_close = opts.on_close
 
-  local keys = M.buttons[opts.language] or M.buttons.en
+  local keys = M.buttons
   local buttons = opts.buttons
   local lines = M.wrap(text, MAX_WIDTH)
   if buttons then

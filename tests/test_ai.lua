@@ -632,7 +632,7 @@ system, prompt = claude.prompt({
 assert(prompt == "User: Hi\n\nAssistant: Hello.\n\nUser: Why?", "a conversation is labelled: " .. prompt)
 
 -- The bubble has to grow as an answer streams in, in place, without reopening.
-local win = bubble.show("Let me unbend for a second...", { language = "en", focus = false })
+local win = bubble.show("Let me unbend for a second...", { focus = false })
 local bubble_buf = vim.api.nvim_win_get_buf(win)
 local height = vim.api.nvim_win_get_config(win).height
 

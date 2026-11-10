@@ -48,7 +48,6 @@ With lazy.nvim: >lua
 >lua
   require("ai_klammer").setup({
     annoyance = 2,
-    language = nil,
     animate = true,
     ignore_filetypes = { "help", "qf", "netrw", "oil", "lazy", "mason",
                          "gitcommit", "TelescopePrompt", "ai_klammer" },
@@ -86,9 +85,6 @@ annoyance ~
 
     There is no separate switch for the jokes: turning them down is turning
     the Klammer down. See the `idle` trigger in |ai-klammer-triggers|.
-
-language ~
-    "en" or "de". `nil` reads |v:lang|.
 
 animate ~
     `true` types every quip into its bubble a few characters at a time and
@@ -138,8 +134,8 @@ ai.max_tokens ~
     Upper bound on the answer. The claude provider ignores it.
 
 ai.system ~
-    The system prompt, so the Klammer's manners are yours to change. The
-    answer language is appended from `language`.
+    The system prompt, so the Klammer's manners are yours to change. "Answer
+    in English." is appended to it.
 
 ai.context_lines ~
     Lines above and below the cursor when there is no selection and no
@@ -231,8 +227,8 @@ ai.request_timeout ~
                         you first through |vim.ui.input()|.
 
 A bubble that asks something (a trigger, the one-time consent question) takes
-the cursor, since it is waiting for a key: `y`/`j` yes, `n` no, `v`/`w` never
-again for that trigger, `q` or `<Esc>` to dismiss. Everything else, answers
+the cursor, since it is waiting for a key: `y` yes, `n` no, `v` never again
+for that trigger, `q` or `<Esc>` to dismiss. Everything else, answers
 included, stays in the corner and leaves the cursor where it is. Answering
 closes the bubble; the Klammer stays and goes back to its neutral face.
 

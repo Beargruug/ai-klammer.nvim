@@ -55,7 +55,6 @@ Local development:
 require("ai_klammer").setup({
   annoyance = 2, -- 0 = silent, 1 = 15 min, 2 = 5 min, 3 = 1 min between quips,
                  -- and how often it says something with no point to it at all
-  language = nil, -- "en" | "de", nil detects from v:lang
   animate = true, -- quips are typed in and the Klammer hops when it speaks
   ignore_filetypes = { "help", "qf", "netrw", "oil", "lazy", "mason", "gitcommit", "TelescopePrompt" },
   git_lines = 300, -- changed lines against HEAD before the Klammer says something
@@ -262,7 +261,7 @@ It narrows the obvious accidents.
 | `diagnostics` | `diagnostics_count` errors or more in the buffer               |
 | `idle`        | Nothing at all — every so often it just says something useless |
 
-In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger, `q`/`<Esc>` to dismiss.
+In the bubble: `y` yes, `n` no, `v` never again for that trigger, `q`/`<Esc>` to dismiss.
 A yes to `git` sends the diff itself, minus blocklisted files, cut off after `ai.max_lines` lines.
 
 `idle` is the exception. It checks nothing, it has nothing to offer, and the remark is of no use

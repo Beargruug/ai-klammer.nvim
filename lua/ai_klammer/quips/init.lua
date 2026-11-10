@@ -45,17 +45,12 @@ function M.draw(list)
   return list[index]
 end
 
-local function set_for(language)
-  local ok, set = pcall(require, "ai_klammer.quips." .. (language or "en"))
-  return ok and set or require("ai_klammer.quips.en")
-end
+local set = require("ai_klammer.quips.en")
 
 --- @param trigger string "regex" | "git" | "diagnostics"
---- @param language? string falls back to English
 --- @param count? number substituted for %d in the quip
-function M.pick(trigger, language, count)
-  local fallback = require("ai_klammer.quips.en")
-  local list = set_for(language)[trigger] or fallback[trigger]
+function M.pick(trigger, count)
+  local list = set[trigger]
   if not list or #list == 0 then
     return nil
   end
@@ -95,20 +90,19 @@ end
 --- @param filetype? string
 --- @param now? integer os.time(), for tests
 --- @param started? integer
-function M.remark(trigger, language, filetype, now, started)
-  local set, fallback = set_for(language), require("ai_klammer.quips.en")
+function M.remark(trigger, filetype, now, started)
   local lists = {}
   for _, key in ipairs(M.moments(now, started)) do
-    lists[#lists + 1] = (set.moments or {})[key] or fallback.moments[key]
+    lists[#lists + 1] = set.moments[key]
   end
   filetype = M.same_as[filetype] or filetype
-  local by_filetype = filetype and ((set.filetypes or {})[filetype] or fallback.filetypes[filetype])
+  local by_filetype = filetype and set.filetypes[filetype]
   if by_filetype then
     lists[#lists + 1] = by_filetype
   end
 
   if #lists == 0 or math.random() >= M.moment_chance then
-    return M.pick(trigger, language)
+    return M.pick(trigger)
   end
   local list = lists[math.random(#lists)]
   -- Only the long-session quips have a %d, and it is the hours so far.
