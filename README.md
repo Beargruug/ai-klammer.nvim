@@ -151,7 +151,8 @@ require("ai_klammer").setup({
       --- @param messages table   { { role = "system"|"user"|"assistant", content = string }, ... }
       --- @param config table     the resolved config, so ai.model and ai.url are yours to use
       --- @param on_chunk fun(text: string)  append to the bubble; safe from any thread
-      --- @param on_done fun(err: string|nil)  nil means it went fine
+      --- @param on_done fun(err: string|nil, info: table|nil)  nil means it went fine;
+      ---                info { cut = true } if the answer stopped at max_tokens
       --- @return table|nil  anything with :kill(), so closing the bubble cuts the answer off
       stream = function(messages, config, on_chunk, on_done)
         return vim.system({ "my-llm", "--model", config.ai.model }, {

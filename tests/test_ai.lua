@@ -72,6 +72,35 @@ assert(argv:find("--connect-timeout", 1, true), "an unreachable host fails fast"
 assert(header_lines:find("sk-secret-value", 1, true), "it is in the config file curl reads")
 assert(header_mode == tonumber("600", 8), "which only its owner can read")
 
+-- Hitting max_tokens is flagged by every bundled parser, so it can be said out loud.
+assert(
+  anthropic.parse('data: {"type":"message_delta","delta":{"stop_reason":"max_tokens"}}\n')[1].cut,
+  "anthropic: stop_reason max_tokens is a cut"
+)
+assert(
+  not anthropic.parse('data: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}\n')[1].cut,
+  "anthropic: end_turn is not"
+)
+assert(
+  openai.parse('data: {"choices":[{"delta":{},"finish_reason":"length"}]}\n')[1].cut,
+  "openai: finish_reason length is a cut"
+)
+assert(not openai.parse('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n')[1].cut, "openai: stop is not")
+
+-- shared.run passes the cut on to on_done.
+local cut_info
+local real_system_cut = vim.system
+vim.system = function(_, opts, on_exit)
+  opts.stdout(nil, 'data: {"type":"message_delta","delta":{"stop_reason":"max_tokens"}}\n')
+  on_exit({ code = 0, stderr = "" })
+  return { kill = function() end }
+end
+shared.run({ "x" }, "", anthropic.parse, function() end, function(_, info)
+  cut_info = info
+end)
+vim.system = real_system_cut
+assert(cut_info and cut_info.cut, "on_done hears that the answer was cut")
+
 -- The claude CLI prints NDJSON and hides failures in the last line, not the exit code.
 local claude = require("ai_klammer.providers.claude")
 local cli, cli_tail = claude.parse(
@@ -476,6 +505,30 @@ vim.wait(300, function()
   return not vim.api.nvim_win_is_valid(quick_win)
 end)
 assert(not vim.api.nvim_win_is_valid(quick_win), "the answer fades once it is complete")
+
+-- An answer cut off at max_tokens says so under the answer, and only there.
+local clipped = vim.tbl_deep_extend("force", talker, {
+  ai = {
+    answer_timeout = false,
+    max_tokens = 7,
+    provider = {
+      stream = function(_, _, on_chunk, on_done)
+        on_chunk("Half an ans")
+        on_done(nil, { cut = true })
+      end,
+    },
+  },
+})
+ai.last = nil
+ai.send("Long?", "code", clipped)
+vim.wait(500, function()
+  return ai.last ~= nil
+end)
+local shown_cut =
+  table.concat(vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(bubble.current()), 0, -1, false), " ")
+assert(shown_cut:find("ai.max_tokens = 7", 1, true), "the bubble says where it stopped: " .. shown_cut)
+assert(ai.last.answer == "Half an ans", "but the answer itself stays clean for yank and follow-ups")
+bubble.close()
 
 -- A request that goes quiet is hung up on, and says so.
 local hung_up = false

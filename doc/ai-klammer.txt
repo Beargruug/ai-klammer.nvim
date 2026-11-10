@@ -433,7 +433,8 @@ decision and the Klammer never needs to know: >lua
       --               content = string }, ... }
       -- config    the resolved config, ai.model and ai.url included
       -- on_chunk  fun(text) appends to the bubble, safe from any thread
-      -- on_done   fun(err|nil)
+      -- on_done   fun(err|nil, info|nil), info { cut = true } when the
+      --           answer stopped at ai.max_tokens
       -- return    anything with :kill(), or nil if it cannot be cancelled
     end } },
   })

@@ -36,6 +36,7 @@ function M.parse(buffer)
     chunks[#chunks + 1] = {
       content = (delta and delta.text) or "",
       done = object.type == "result",
+      cut = event ~= nil and event.type == "message_delta" and (event.delta or {}).stop_reason == "max_tokens",
       error = (object.type == "result" and object.is_error and (object.result or object.subtype)) or nil,
     }
   end

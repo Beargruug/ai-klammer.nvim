@@ -26,6 +26,7 @@ local phrases = {
     unreachable = "I cannot reach %s. Is it running? :checkhealth ai_klammer knows more.",
     failed = "That did not work: %s",
     silent = "The model said nothing at all. I know the feeling.",
+    cut = "(I stopped at ai.max_tokens = %d. Raise it for longer answers.)",
     stalled = "Not a word for %d seconds, so I hung up. Ask again, or raise ai.request_timeout if it thinks slowly.",
     no_rg = "I look things up with ripgrep, and ripgrep is not on your PATH. Install it and ask me again.",
     no_hits = "I searched the whole project and found nothing to do with that. Try words that appear in the code.",
@@ -42,6 +43,7 @@ local phrases = {
     unreachable = "Ich erreiche %s nicht. Läuft das? :checkhealth ai_klammer weiß mehr.",
     failed = "Das hat nicht geklappt: %s",
     silent = "Das Modell hat gar nichts gesagt. Das Gefühl kenne ich.",
+    cut = "(Bei ai.max_tokens = %d habe ich aufgehört. Erhöh es für längere Antworten.)",
     stalled = "%d Sekunden kein Wort, also habe ich aufgelegt. Frag noch mal, oder erhöh ai.request_timeout, falls es langsam denkt.",
     no_rg = "Ich schlage mit ripgrep nach, und ripgrep liegt nicht in deinem PATH. Installier es und frag noch mal.",
     no_hits = "Ich habe das ganze Projekt durchsucht und nichts dazu gefunden. Nimm Wörter, die im Code vorkommen.",
@@ -308,7 +310,7 @@ local function converse(messages, config)
     watch()
   end)
 
-  local on_done = vim.schedule_wrap(function(err)
+  local on_done = vim.schedule_wrap(function(err, info)
     finished = true
     unwatch()
     if not ours() then
@@ -325,6 +327,11 @@ local function converse(messages, config)
       table.insert(M.history, 1, M.last)
       for index = #M.history, M.history_size + 1, -1 do
         M.history[index] = nil
+      end
+      -- Hit the ceiling mid-sentence: say so under the answer, not in it, so
+      -- :Klammer yank and a follow-up get the answer alone.
+      if info and info.cut then
+        bubble.update(answer .. "\n\n" .. say(config.language, "cut", config.ai.max_tokens))
       end
       fade(mine, answer, config)
       -- Faintly pleased with itself, as per the system prompt.

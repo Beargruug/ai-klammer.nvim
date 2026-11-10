@@ -23,6 +23,8 @@ function M.parse(buffer)
     chunks[#chunks + 1] = {
       content = (object.delta and object.delta.text) or "",
       done = object.type == "message_stop",
+      -- message_delta says why it stopped; max_tokens means mid-sentence.
+      cut = object.delta ~= nil and object.delta.stop_reason == "max_tokens",
       error = object.error and (object.error.message or object.error.type),
     }
   end

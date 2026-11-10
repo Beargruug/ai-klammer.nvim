@@ -26,6 +26,7 @@ function M.parse(buffer)
     chunks[#chunks + 1] = {
       content = (choice.delta and choice.delta.content) or "",
       done = choice.finish_reason ~= nil,
+      cut = choice.finish_reason == "length",
       error = object.error and (object.error.message or object.error.type),
     }
   end

@@ -51,8 +51,8 @@ local function scrubbed(on_done, secret)
   if not secret or secret == "" then
     return on_done
   end
-  return function(err)
-    on_done(err and (err:gsub(vim.pesc(secret), "[redacted]")))
+  return function(err, info)
+    on_done(err and (err:gsub(vim.pesc(secret), "[redacted]")), info)
   end
 end
 
@@ -82,9 +82,9 @@ function M.curl(request, on_chunk, on_done)
     request.body,
     request.parse,
     on_chunk,
-    function(err)
+    function(err, info)
       os.remove(headers)
-      done(err)
+      done(err, info)
     end
   )
 end
@@ -92,11 +92,13 @@ end
 --- Pump a streaming subprocess: gather stdout, hand whole lines to the
 --- provider's parse, forward the text, keep the first failure. Both APIs and
 --- the CLI report errors inside the stream as often as in the exit code.
+--- A chunk marked `cut` means the model hit ai.max_tokens; on_done hears of
+--- it as `{ cut = true }`, so the answer does not just stop mid-sentence.
 --- @param parse fun(buffer: string): table, string
 --- @return table the vim.system handle, so the caller can :kill() it
 function M.run(command, stdin, parse, on_chunk, on_done)
   local buffer = ""
-  local failed
+  local failed, cut
   return vim.system(command, {
     text = true,
     stdin = stdin,
@@ -112,6 +114,7 @@ function M.run(command, stdin, parse, on_chunk, on_done)
         elseif chunk.content ~= "" then
           on_chunk(chunk.content)
         end
+        cut = cut or chunk.cut
       end
     end,
   }, function(result)
@@ -119,7 +122,7 @@ function M.run(command, stdin, parse, on_chunk, on_done)
       failed = vim.trim(result.stderr or "") ~= "" and vim.trim(result.stderr)
         or (command[1] .. " exited with " .. result.code)
     end
-    on_done(failed)
+    on_done(failed, cut and { cut = true } or nil)
   end)
 end
 

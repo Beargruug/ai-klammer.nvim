@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- An answer that hit `ai.max_tokens` stopped mid-sentence without a word of
+  explanation; the bubble now says where it stopped and what to raise.
+  Custom providers can report it as `on_done(nil, { cut = true })`
+
 - `:Klammer project` searched Neovim's working directory, not the project:
   started in `~`, it grepped your whole home directory and could send
   matching lines from unrelated files. It now searches the git repository
