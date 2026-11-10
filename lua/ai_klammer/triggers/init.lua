@@ -61,7 +61,7 @@ function M.fire(trigger, count, config, buf)
   -- gets the greeting's treatment: no buttons, never takes the cursor, gone
   -- again in a moment. Interrupting you for a joke would not be a joke.
   if not require("ai_klammer.ai").questions[trigger] then
-    return bubble.show(quips.remark(trigger, config.language, vim.bo.filetype), {
+    return bubble.show(quips.remark(trigger, config.language, vim.bo[buf].filetype), {
       language = config.language,
       animate = config.animate,
       focus = false,
@@ -76,6 +76,10 @@ function M.fire(trigger, count, config, buf)
     mood = "thinking",
     buttons = true,
     on_yes = function()
+      -- The diff it counted, not the code under the cursor.
+      if trigger == "git" then
+        return require("ai_klammer.ai").changes(question, buf, config)
+      end
       require("ai_klammer.ai").run(question, range, config)
     end,
     -- Every no is counted. The round ones get said out loud, briefly.

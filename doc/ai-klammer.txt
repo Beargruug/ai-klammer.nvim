@@ -204,7 +204,9 @@ regex ~
 
 git ~
     |BufWritePost|. `git diff --shortstat HEAD` in the file's directory,
-    run asynchronously. Fires above `git_lines` changed lines.
+    run asynchronously. Fires above `git_lines` changed lines. Saying yes
+    sends that diff, every changed file except those in `ai.blocklist`,
+    with a `--stat` header and cut off after `ai.max_lines` lines.
 
 diagnostics ~
     |CursorHold| and |BufWritePost|. Fires at `diagnostics_count` errors.

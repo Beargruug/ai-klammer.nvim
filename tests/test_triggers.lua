@@ -106,7 +106,59 @@ triggers.fire("diagnostics", 1, config, broken)
 yes()
 assert(sent and sent.question:find("undefined global oops", 1, true), "the counted buffer's errors are spelled out")
 
+-- The git trigger's yes asks about the diff it counted, not the code under the cursor.
+local real_changes = ai.changes
+ai.changes = function(question, from)
+  sent = { question = question, buf = from }
+end
+sent = nil
+triggers.fire("git", 400, config, code)
+yes()
+assert(sent and sent.buf == code, "a git yes goes to ai.changes, with the buffer that was saved")
+ai.changes = real_changes
+
 ai.run = real_run
 require("ai_klammer").hide()
+
+-- git.diff against a real repository: every changed file except the blocked ones.
+local repo = vim.fn.tempname()
+vim.fn.mkdir(repo, "p")
+local function sh(...)
+  local result = vim.system({ ... }, { cwd = repo, text = true }):wait()
+  assert(result.code == 0, table.concat({ ... }, " ") .. ": " .. (result.stderr or ""))
+end
+vim.fn.writefile({ "local a = 1" }, repo .. "/a.lua")
+vim.fn.writefile({ "TOKEN=old" }, repo .. "/.env")
+sh("git", "init", "-q")
+sh("git", "add", ".")
+sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init")
+vim.fn.writefile({ "local a = 2" }, repo .. "/a.lua")
+vim.fn.writefile({ "TOKEN=new" }, repo .. "/.env")
+
+local diff, finished
+git.diff(repo, function(path)
+  return require("ai_klammer.context.secrets").blocked(path, config)
+end, function(result)
+  diff, finished = result, true
+end)
+vim.wait(5000, function()
+  return finished
+end)
+assert(diff and diff:find("+local a = 2", 1, true), "the changed file is in the diff:\n" .. tostring(diff))
+assert(not diff:find("TOKEN", 1, true), "the blocked one is not, not even its name")
+assert(not diff:find(".env", 1, true), "not even in the --stat header")
+
+vim.fn.writefile({ "local a = 1" }, repo .. "/a.lua")
+diff, finished = "unset", false
+git.diff(repo, function(path)
+  return require("ai_klammer.context.secrets").blocked(path, config)
+end, function(result)
+  diff, finished = result, true
+end)
+vim.wait(5000, function()
+  return finished
+end)
+assert(diff == nil, "only blocked files changed means nothing to show")
+vim.fn.delete(repo, "rf")
 
 print("ok")

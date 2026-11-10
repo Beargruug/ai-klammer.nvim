@@ -305,6 +305,40 @@ assert(bubble.is_open(), "it says no rather than silently doing nothing")
 require("ai_klammer").hide()
 require("ai_klammer.state").reset()
 
+-- The git trigger's yes sends the diff, cut at max_lines rather than refused,
+-- and redacted like everything else. git itself is stubbed here; the real one
+-- runs in test_triggers.lua.
+local git = require("ai_klammer.triggers.git")
+local real_diff = git.diff
+local diff_lines = { "diff --git a/a.lua b/a.lua", '+local key = "sk-' .. ("a"):rep(40) .. '"' }
+for index = 1, 10 do
+  table.insert(diff_lines, "+line " .. index)
+end
+git.diff = function(_, _, done)
+  done(table.concat(diff_lines, "\n"))
+end
+local short = vim.tbl_deep_extend("force", spy, { ai = { max_lines = 5 } })
+local named = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_buf_set_name(named, vim.fn.tempname() .. "/a.lua")
+sent = nil
+ai.changes("What changed?", named, short)
+local prompt = sent and sent[2].content or ""
+assert(prompt:find("diff --git a/a.lua", 1, true), "the diff is sent, not the code under the cursor:\n" .. prompt)
+assert(not prompt:find("sk-aaaa", 1, true), "keys in the diff are redacted")
+assert(prompt:find("+line 3", 1, true) and not prompt:find("+line 4", 1, true), "cut at max_lines")
+assert(prompt:find("7 more lines not sent", 1, true), "and says how much is missing")
+
+git.diff = function(_, _, done)
+  done(nil)
+end
+sent = nil
+ai.changes("What changed?", named, spy)
+assert(sent == nil, "nothing to show, nothing sent")
+assert(bubble.is_open(), "but it says so")
+git.diff = real_diff
+require("ai_klammer").hide()
+vim.api.nvim_set_current_buf(buf)
+
 -- A blocklisted file is answered with silence: no request, and no bubble
 -- either, because a refusal confirms the file is worth looking at.
 local secret_buf = vim.api.nvim_create_buf(false, true)

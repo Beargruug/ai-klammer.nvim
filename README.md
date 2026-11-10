@@ -238,6 +238,7 @@ It narrows the obvious accidents.
 | `idle`        | Nothing at all — every so often it just says something useless |
 
 In the bubble: `y`/`j` yes, `n` no, `v`/`w` never again for that trigger, `q`/`<Esc>` to dismiss.
+A yes to `git` sends the diff itself, minus blocklisted files, cut off after `ai.max_lines` lines.
 
 `idle` is the exception. It checks nothing, it has nothing to offer, and the remark is of no use
 to anybody — that is the feature. Its bubble has no buttons, never takes your cursor, and fades

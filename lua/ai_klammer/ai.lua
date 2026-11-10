@@ -5,7 +5,7 @@ local M = {}
 M.questions = {
   explain = "Explain what this code does, then name the one thing most likely to bite.",
   regex = "Explain what this regular expression matches and where it will go wrong.",
-  git = "Summarise what changed in this file and suggest how to split it into commits.",
+  git = "Summarise what changed and suggest how to split it into commits.",
   diagnostics = "Explain these errors and how to fix them.",
 }
 
@@ -28,6 +28,7 @@ local phrases = {
     silent = "The model said nothing at all. I know the feeling.",
     no_rg = "I look things up with ripgrep, and ripgrep is not on your PATH. Install it and ask me again.",
     no_hits = "I searched the whole project and found nothing to do with that. Try words that appear in the code.",
+    no_changes = "I asked git, and it has no changes I could show you. Committed in the meantime?",
     consent = "Before I answer that: the code I am looking at gets sent to %s. "
       .. "Say yes once and I will stop asking.",
     refused = "You told me never to send your code anywhere, so I will not. :Klammer reset if you change your mind.",
@@ -42,6 +43,7 @@ local phrases = {
     silent = "Das Modell hat gar nichts gesagt. Das Gefühl kenne ich.",
     no_rg = "Ich schlage mit ripgrep nach, und ripgrep liegt nicht in deinem PATH. Installier es und frag noch mal.",
     no_hits = "Ich habe das ganze Projekt durchsucht und nichts dazu gefunden. Nimm Wörter, die im Code vorkommen.",
+    no_changes = "Ich habe git gefragt, und da sind keine Änderungen, die ich zeigen könnte. Zwischendurch committet?",
     consent = "Bevor ich das beantworte: Der Code, den ich ansehe, geht an %s. "
       .. "Einmal ja, dann frage ich nicht mehr.",
     refused = "Du hast gesagt, mein Code soll nirgendwohin. Also bleibt er hier. :Klammer reset, falls du es dir anders überlegst.",
@@ -150,6 +152,41 @@ function M.project(question, config)
       return complain(config, reason)
     end
     M.send(question, "Matches from this project:\n\n" .. body, config)
+  end)
+end
+
+--- Ask about the uncommitted changes rather than the code under the cursor,
+--- which may well be the one function you did not touch. The diff is cut at
+--- ai.max_lines instead of refused: the trigger only fires on big diffs, so
+--- refusing would refuse nearly every time.
+--- @param question string
+--- @param buf integer a buffer inside the repository
+function M.changes(question, buf, config)
+  config = config or require("ai_klammer").config
+  local secrets = require("ai_klammer.context.secrets")
+  local path = vim.api.nvim_buf_get_name(buf)
+  if path == "" then
+    return complain(config, "no_changes")
+  end
+
+  local function blocked(file)
+    return secrets.blocked(file, config)
+  end
+  require("ai_klammer.triggers.git").diff(vim.fs.dirname(path), blocked, function(diff)
+    if not diff or vim.trim(diff) == "" then
+      return complain(config, "no_changes")
+    end
+    local lines = vim.split(vim.trim(diff), "\n", { plain = true })
+    if #lines > config.ai.max_lines then
+      local cut = #lines - config.ai.max_lines
+      lines = vim.list_slice(lines, 1, config.ai.max_lines)
+      table.insert(lines, ("... cut off here, %d more lines not sent"):format(cut))
+    end
+    local text = table.concat(lines, "\n")
+    if config.ai.redact then
+      text = secrets.redact(text)
+    end
+    M.send(question, "Uncommitted changes against HEAD:\n```diff\n" .. text .. "\n```", config)
   end)
 end
 

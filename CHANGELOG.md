@@ -59,6 +59,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Saying yes to the git trigger sent the function under the cursor, so the
+  model was asked to split a diff it never saw. It now gets the diff against
+  HEAD, every changed file except blocklisted ones, with a `--stat` header
+  and cut off after `ai.max_lines` lines
+- The idle trigger's filetype remarks read the filetype of the current
+  buffer instead of the one that set it off
 - The shared cooldown stopped counting once every trigger had fired once, so
   one trigger could speak up a minute after another; now both its own
   cooldown and the shared one have to be over

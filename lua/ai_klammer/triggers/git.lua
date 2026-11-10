@@ -27,4 +27,43 @@ function M.check(buf, config, done)
   end)
 end
 
+--- Run git, and hand its output to `callback` on the main loop, nil if it failed.
+local function git(args, cwd, callback)
+  vim.system(vim.list_extend({ "git" }, args), { cwd = cwd, text = true }, function(result)
+    vim.schedule(function()
+      callback(result.code == 0 and result.stdout or nil)
+    end)
+  end)
+end
+
+--- What a yes sends: the same diff the trigger counted, against HEAD across
+--- the whole repository, minus every file `blocked` refuses. Filtered by file
+--- before git is asked for the patch, so a changed .env never reaches the
+--- Klammer at all, let alone the model. A --stat header comes first, so the
+--- model still sees every file when the patch has to be cut short.
+--- @param dir string any directory inside the repository
+--- @param blocked fun(path: string): boolean given the absolute path
+--- @param done fun(diff: string|nil) nil when there is nothing it may show
+function M.diff(dir, blocked, done)
+  git({ "rev-parse", "--show-toplevel" }, dir, function(top)
+    if not top then
+      return done(nil)
+    end
+    top = vim.trim(top)
+    -- -z, or git quotes unusual file names and the blocklist never matches them.
+    git({ "diff", "--name-only", "-z", "HEAD" }, top, function(names)
+      local files = {}
+      for name in (names or ""):gmatch("[^%z]+") do
+        if not blocked(top .. "/" .. name) then
+          table.insert(files, name)
+        end
+      end
+      if #files == 0 then
+        return done(nil)
+      end
+      git(vim.list_extend({ "diff", "--stat", "--patch", "HEAD", "--" }, files), top, done)
+    end)
+  end)
+end
+
 return M
