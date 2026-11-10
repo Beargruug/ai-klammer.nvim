@@ -16,6 +16,10 @@ local group = vim.api.nvim_create_augroup("AiKlammer", { clear = true })
 -- One timer, restarted. vim.defer_fn makes a new one per call and only closes
 -- it once it fires, so stopping it early leaked a handle every time.
 local debounce
+-- Every event since the timer last ran, not just the latest: with an
+-- 'updatetime' under the debounce, the CursorHold right after :w would
+-- otherwise replace the BufWritePost, and the git trigger never fires.
+local pending = {}
 
 function M.ignored(buf, config)
   return vim.bo[buf].buftype ~= ""
@@ -103,14 +107,23 @@ function M.fire(trigger, count, config, buf)
   })
 end
 
-local function run(event, buf, config)
+--- @param events table<string, true> every event since the last run
+local function run(events, buf, config)
   if not vim.api.nvim_buf_is_valid(buf) or bubble.is_open() or M.ignored(buf, config) then
     return
+  end
+  local function wants(check)
+    for _, event in ipairs(check.events) do
+      if events[event] then
+        return true
+      end
+    end
+    return false
   end
   for _, check in ipairs(M.checks) do
     -- A check may ask to be rarer than the shared cooldown, never louder.
     local cooldown = math.max(check.cooldown or 0, config.cooldown)
-    if vim.tbl_contains(check.events, event) and state.can_fire(check.name, cooldown, config.cooldown) then
+    if wants(check) and state.can_fire(check.name, cooldown, config.cooldown) then
       check.check(buf, config, function(count)
         vim.schedule(function()
           if count and not bubble.is_open() and state.can_fire(check.name, cooldown, config.cooldown) then
@@ -130,13 +143,16 @@ function M.setup(config)
   vim.api.nvim_create_autocmd({ "CursorHold", "BufWritePost" }, {
     group = group,
     callback = function(args)
+      pending[args.event] = true
       debounce = debounce or vim.uv.new_timer()
       debounce:stop()
       debounce:start(
         300,
         0,
         vim.schedule_wrap(function()
-          run(args.event, args.buf, config)
+          local events = pending
+          pending = {}
+          run(events, args.buf, config)
         end)
       )
     end,

@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The git trigger never fired with an `updatetime` under 300 ms, as in
+  kickstart.nvim: the `CursorHold` right after a save replaced the pending
+  `BufWritePost` in the debounce. Every event in the window now runs
+
 ## [0.7.0] — the Klammer gets to the point
 
 ### Added

@@ -155,6 +155,28 @@ vim.wait(600, function()
 end)
 vim.wait(100)
 assert(runs == 1, "five quick events, one run: " .. runs)
+
+-- Regression: with 'updatetime' under the debounce (kickstart.nvim sets 250),
+-- the CursorHold right after :w replaced the pending BufWritePost, so the git
+-- trigger never saw a single save.
+local seen = {}
+local function spy(name, event)
+  return {
+    name = name,
+    events = { event },
+    check = function()
+      seen[name] = true
+    end,
+  }
+end
+triggers.checks = { spy("on_write", "BufWritePost"), spy("on_hold", "CursorHold") }
+vim.api.nvim_exec_autocmds("BufWritePost", { buffer = code })
+vim.api.nvim_exec_autocmds("CursorHold", { buffer = code })
+vim.wait(600, function()
+  return seen.on_write and seen.on_hold
+end)
+assert(seen.on_hold, "the CursorHold still reaches its checks")
+assert(seen.on_write, "and does not swallow the BufWritePost before it")
 triggers.checks = real_checks
 vim.api.nvim_clear_autocmds({ group = "AiKlammer" })
 
