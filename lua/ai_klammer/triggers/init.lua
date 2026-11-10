@@ -13,6 +13,8 @@ M.checks = {
 }
 
 local group = vim.api.nvim_create_augroup("AiKlammer", { clear = true })
+-- One timer, restarted. vim.defer_fn makes a new one per call and only closes
+-- it once it fires, so stopping it early leaked a handle every time.
 local debounce
 
 function M.ignored(buf, config)
@@ -128,12 +130,15 @@ function M.setup(config)
   vim.api.nvim_create_autocmd({ "CursorHold", "BufWritePost" }, {
     group = group,
     callback = function(args)
-      if debounce then
-        debounce:stop()
-      end
-      debounce = vim.defer_fn(function()
-        run(args.event, args.buf, config)
-      end, 300)
+      debounce = debounce or vim.uv.new_timer()
+      debounce:stop()
+      debounce:start(
+        300,
+        0,
+        vim.schedule_wrap(function()
+          run(args.event, args.buf, config)
+        end)
+      )
     end,
   })
 end

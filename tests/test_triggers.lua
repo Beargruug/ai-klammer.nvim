@@ -120,6 +120,44 @@ ai.changes = real_changes
 ai.run = real_run
 require("ai_klammer").hide()
 
+-- The regex check reads the buffer that fired, and only while it is current.
+vim.api.nvim_set_current_buf(code)
+vim.api.nvim_win_set_cursor(0, { 10, 0 })
+local counted
+regex.check(code, config, function(count)
+  counted = count
+end)
+assert(counted, "the regex under the cursor counts")
+regex.check(vim.api.nvim_create_buf(true, false), config, function(count)
+  counted = count
+end)
+assert(counted == nil, "a buffer you have left is not read through the current one")
+
+-- A burst of events runs the checks once, after the debounce.
+local runs = 0
+local real_checks = triggers.checks
+triggers.checks = {
+  {
+    name = "spy",
+    events = { "CursorHold" },
+    check = function()
+      runs = runs + 1
+    end,
+  },
+}
+-- No cooldown: the triggers above have used up the shared one.
+triggers.setup(vim.tbl_extend("force", config, { cooldown = 0 }))
+for _ = 1, 5 do
+  vim.api.nvim_exec_autocmds("CursorHold", { buffer = code })
+end
+vim.wait(600, function()
+  return runs > 0
+end)
+vim.wait(100)
+assert(runs == 1, "five quick events, one run: " .. runs)
+triggers.checks = real_checks
+vim.api.nvim_clear_autocmds({ group = "AiKlammer" })
+
 -- git.diff against a real repository: every changed file except the blocked ones.
 local repo = vim.fn.tempname()
 vim.fn.mkdir(repo, "p")

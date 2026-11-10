@@ -8,6 +8,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Every trigger event within 300 ms of another leaked a timer handle; the
+  debounce now reuses one timer
+- The regex trigger could read the cursor line of whatever buffer you had
+  moved to during the debounce; it now only looks at the buffer that fired
+
 - An answer that hit `ai.max_tokens` stopped mid-sentence without a word of
   explanation; the bubble now says where it stopped and what to raise.
   Custom providers can report it as `on_done(nil, { cut = true })`

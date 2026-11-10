@@ -25,7 +25,13 @@ function M.looks_like_regex(line)
   return nil
 end
 
-function M.check(_, _, done)
+--- The cursor line of the buffer that set it off. Only while that buffer is
+--- still the current one: after the debounce you may have moved on, and the
+--- line under the cursor would be another file's.
+function M.check(buf, _, done)
+  if buf ~= vim.api.nvim_get_current_buf() then
+    return done(nil)
+  end
   done(M.looks_like_regex(vim.api.nvim_get_current_line()))
 end
 
