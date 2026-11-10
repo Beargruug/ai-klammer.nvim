@@ -13,6 +13,14 @@ vim.fn.writefile({ "local a = 1" }, dir .. "/a.lua")
 local function report(file, mods)
   vim.cmd("silent! tabonly | silent! only | edit " .. vim.fn.fnameescape(file))
   vim.cmd((mods or "") .. " checkhealth ai_klammer")
+  -- Nightly runs the checks asynchronously: the report opens at once and
+  -- fills in later. The filetype is set once it is done, on stable too.
+  assert(
+    vim.wait(5000, function()
+      return vim.bo.filetype == "checkhealth"
+    end),
+    "the report never finished"
+  )
   local text = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
   vim.cmd("bwipeout!")
   return text
