@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] — the Klammer remembers what it said
+
 ### Added
 
 - Follow-up questions: after an answer, `:Klammer ask` without a range

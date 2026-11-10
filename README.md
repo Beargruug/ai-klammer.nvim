@@ -20,11 +20,13 @@ An ASCII paperclip that lives in the corner of your editor and has opinions abou
 It greets you when Neovim starts, fades the greeting after three seconds, then stays in the
 corner blinking until you send it away. The greeting never takes your cursor.
 
-Status: v0.5.0. It watches, it comments, it explains the function you just highlighted, and it
+Status: v0.6.0. It watches, it comments, it explains the function you just highlighted, and it
 answers questions about the whole repository through Claude, the Anthropic API, or anything
-that speaks OpenAI. It asks before sending anything, and it will not read your `.env`. Every so
-often it says something of no use to anybody at all. Between bubbles it blinks, follows your
-cursor, falls asleep when you leave, and remembers you the next time.
+that speaks OpenAI. It remembers what it said, so you can ask "why?" after an answer, and shows
+an answer again if it faded before you were done. It asks before sending anything, and it will
+not read your `.env`. Every so often it says something of no use to anybody at all. Between
+bubbles it blinks, follows your cursor, falls asleep when you leave, and remembers you the next
+time.
 
 ## Requirements
 
