@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The bubble stayed where it was when the editor was resized, while the
+  Klammer moved; it now follows
+- German bubbles wrapped early: line width was counted in bytes, so every
+  umlaut cost a column
+- Code in an answer lost its indentation and line breaks, reflowed into one
+  line of prose. Fenced blocks and indented lines are now left as they are
+
 ## [0.5.0] — the Klammer comes alive
 
 ### Added

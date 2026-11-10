@@ -12,22 +12,35 @@ M.buttons = {
 local ns = vim.api.nvim_create_namespace("ai_klammer_bubble")
 local buf, win, prev_win
 local on_close -- the open bubble's hook, however it ends up closed
+local shown -- the open bubble's full lines, to lay it out again on a resize
 
-local function wrap(text, width)
+--- Reflow prose to `width` columns. Code keeps its shape: lines inside a ```
+--- fence, and indented lines, are left exactly as they are, or an answer's
+--- example would arrive as one long line of words.
+--- Widths are display cells, not bytes, or every ä costs German a column.
+function M.wrap(text, width)
   local lines = {}
+  local fenced = false
   for _, paragraph in ipairs(vim.split(text, "\n", { plain = true })) do
-    local line = ""
-    for word in paragraph:gmatch("%S+") do
-      if line == "" then
-        line = word
-      elseif #line + #word + 1 <= width then
-        line = line .. " " .. word
-      else
-        lines[#lines + 1] = line
-        line = word
+    local fence = paragraph:match("^%s*```") ~= nil
+    if fence or fenced or paragraph:match("^%s") then
+      lines[#lines + 1] = paragraph
+      fenced = fenced ~= fence
+    else
+      local line, used = "", 0
+      for word in paragraph:gmatch("%S+") do
+        local size = vim.fn.strdisplaywidth(word)
+        if line == "" then
+          line, used = word, size
+        elseif used + size + 1 <= width then
+          line, used = line .. " " .. word, used + size + 1
+        else
+          lines[#lines + 1] = line
+          line, used = word, size
+        end
       end
+      lines[#lines + 1] = line
     end
-    lines[#lines + 1] = line
   end
   return lines
 end
@@ -38,6 +51,8 @@ local function float(lines)
   for _, line in ipairs(lines) do
     width = math.max(width, vim.fn.strdisplaywidth(line))
   end
+  -- A long line of code is kept whole, so it could be wider than the screen.
+  width = math.max(1, math.min(width, vim.o.columns - 4))
   local anchor = avatar.anchor()
   local height = math.max(1, math.min(#lines, anchor.row - 2))
   return {
@@ -123,7 +138,8 @@ function M.update(text)
     return
   end
   typing = typing + 1
-  local lines = wrap(text, MAX_WIDTH)
+  local lines = M.wrap(text, MAX_WIDTH)
+  shown = lines
   write(lines)
   vim.api.nvim_win_set_config(win, float(lines))
   -- The window caps out at screen height, so keep the newest line in view.
@@ -141,6 +157,7 @@ function M.close()
     vim.api.nvim_win_close(win, true)
   end
   win = nil
+  shown = nil
   if focused and prev_win and vim.api.nvim_win_is_valid(prev_win) then
     vim.api.nvim_set_current_win(prev_win)
   end
@@ -180,11 +197,12 @@ function M.show(text, opts)
 
   local keys = M.buttons[opts.language] or M.buttons.en
   local buttons = opts.buttons
-  local lines = wrap(text, MAX_WIDTH)
+  local lines = M.wrap(text, MAX_WIDTH)
   if buttons then
     lines[#lines + 1] = ""
     lines[#lines + 1] = keys.line
   end
+  shown = lines
 
   buf = vim.api.nvim_create_buf(false, true)
   -- A fresh buffer per bubble, so it has to go with the window or they pile up.
@@ -261,5 +279,15 @@ function M.show(text, opts)
   end
   return win
 end
+
+-- The Klammer moves with the editor's edges, so the bubble has to follow it.
+vim.api.nvim_create_autocmd("VimResized", {
+  group = vim.api.nvim_create_augroup("AiKlammerBubble", { clear = true }),
+  callback = function()
+    if M.is_open() and shown then
+      vim.api.nvim_win_set_config(win, float(shown))
+    end
+  end,
+})
 
 return M

@@ -156,4 +156,26 @@ vim.wait(300)
 assert(vim.api.nvim_win_is_valid(slow), "still open: the timeout starts after the typing")
 bubble.close()
 
+-- Wrapping counts display cells, not bytes: "ä" is two bytes and one column.
+local umlauts = bubble.wrap("äää äää äää", 11)
+assert(#umlauts == 1, "eleven columns fit on one line: " .. vim.inspect(umlauts))
+
+-- Code in an answer keeps its indentation and its line breaks.
+local answer = bubble.wrap("Like this:\n```lua\nif x then\n  return 1\nend\n```\nand    more prose", 46)
+assert(
+  vim.deep_equal(answer, { "Like this:", "```lua", "if x then", "  return 1", "end", "```", "and more prose" }),
+  "fenced code is left alone, prose around it is reflowed: " .. vim.inspect(answer)
+)
+assert(bubble.wrap("    indented code", 46)[1] == "    indented code", "indented lines are code too")
+
+-- The bubble follows the Klammer when the editor is resized.
+local columns = vim.o.columns
+local resized = bubble.show("Still here.", { language = "en", focus = false })
+local before_col = vim.api.nvim_win_get_config(resized).col
+vim.o.columns = columns - 10
+vim.api.nvim_exec_autocmds("VimResized", {})
+assert(vim.api.nvim_win_get_config(resized).col == before_col - 10, "moved left with the edge")
+vim.o.columns = columns
+bubble.close()
+
 print("ok")
