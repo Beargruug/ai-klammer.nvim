@@ -42,15 +42,35 @@ function M.parse(buffer)
   return chunks, rest
 end
 
-function M.stream(messages, config, on_chunk, on_done)
-  local system, prompt = nil, {}
+--- The CLI takes one prompt on stdin, not a list of turns. A single question
+--- goes as it is; a conversation is spelled out turn by turn, or the model
+--- would read its own earlier answer as something the user wrote.
+--- @return string|nil system
+--- @return string prompt
+function M.prompt(messages)
+  local system, turns = nil, {}
   for _, message in ipairs(messages) do
     if message.role == "system" then
       system = message.content
     else
-      prompt[#prompt + 1] = message.content
+      turns[#turns + 1] = message
     end
   end
+  if #turns == 1 then
+    return system, turns[1].content
+  end
+  local labels = { user = "User", assistant = "Assistant" }
+  return system,
+    table.concat(
+      vim.tbl_map(function(turn)
+        return (labels[turn.role] or turn.role) .. ": " .. turn.content
+      end, turns),
+      "\n\n"
+    )
+end
+
+function M.stream(messages, config, on_chunk, on_done)
+  local system, prompt = M.prompt(messages)
 
   local command = {
     M.command,
@@ -72,7 +92,7 @@ function M.stream(messages, config, on_chunk, on_done)
   }
   vim.list_extend(command, M.no_tools)
 
-  return shared.run(command, table.concat(prompt, "\n\n"), M.parse, on_chunk, on_done)
+  return shared.run(command, prompt, M.parse, on_chunk, on_done)
 end
 
 return M

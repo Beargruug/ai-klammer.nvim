@@ -142,7 +142,7 @@ model, API or SDK you use:
 require("ai_klammer").setup({
   ai = {
     provider = {
-      --- @param messages table   { { role = "system"|"user", content = string }, ... }
+      --- @param messages table   { { role = "system"|"user"|"assistant", content = string }, ... }
       --- @param config table     the resolved config, so ai.model and ai.url are yours to use
       --- @param on_chunk fun(text: string)  append to the bubble; safe from any thread
       --- @param on_done fun(err: string|nil)  nil means it went fine
@@ -181,6 +181,11 @@ vim.keymap.set("n", "<leader>kc", "<cmd>Klammer close<CR>")
 
 In visual mode `:Klammer explain` becomes `:'<,'>Klammer explain` on its own, so the selection
 is what gets sent.
+
+While an answer is still on screen, `:Klammer ask` without a selection is a follow-up: the
+code, the question and the answer go along again, so `:Klammer ask why?` means why *that*.
+A selection, or closing the bubble, starts over. `:Klammer yank` copies the last answer into
+the register a plain `y` would use, or `:Klammer yank +` into the one you name.
 
 ## Asking about the whole project
 
@@ -275,6 +280,7 @@ again" choices. `:Klammer reset` does not touch it; delete the file to make it f
 | `:Klammer hide`           | Send it away for this session                            |
 | `:Klammer focus`          | Go into the bubble to scroll or copy; `q` comes back     |
 | `:Klammer close`          | Close the bubble, cancelling an answer still coming      |
+| `:Klammer yank [reg]`     | Copy the last answer into a register                     |
 | `:Klammer reset`          | Forget every "never again" and the cooldown              |
 | `:[range]Klammer explain` | Explain the selection, the function, or the lines nearby |
 | `:[range]Klammer ask [q]` | Ask anything about that code; prompts without `q`        |

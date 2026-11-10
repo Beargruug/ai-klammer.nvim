@@ -174,11 +174,16 @@ ai.consent ~
                         cursor back where it was.
 :Klammer close          Close the bubble, cancelling an answer still on its
                         way. The Klammer stays.
+:Klammer yank [{reg}]   Copy the last whole answer into {reg}, or into the
+                        register a plain `y` would use, so 'clipboard' is
+                        respected.
 :Klammer reset          Forget every "never again" and reset the cooldown.
 :[range]Klammer explain Explain the range, or the function around the cursor,
                         or the lines nearby. See |ai-klammer-asking|.
 :[range]Klammer ask {q} Ask {q} about the same code. Without {q} it asks you
-                        first through |vim.ui.input()|.
+                        first through |vim.ui.input()|. Without a range, while
+                        an answer is on screen, {q} is a follow-up to it. See
+                        |ai-klammer-follow-up|.
 :Klammer project {q}    Ask {q} about the whole repository instead of the
                         buffer. See |ai-klammer-project|. Without {q} it asks
                         you first through |vim.ui.input()|.
@@ -279,6 +284,12 @@ regex trigger that is the line with the regex and three lines either side,
 not the whole function. For the diagnostics trigger the error messages are
 sent along with the code.
 
+                                                       *ai-klammer-follow-up*
+While an answer is still on screen, `:Klammer ask` without a range continues
+that conversation: the question, the code and the answer go along again, so
+"why?" means why that. A range always means new code and starts over, and so
+does closing the bubble. Nothing is carried along that is no longer on screen.
+
 Run |:checkhealth| `ai_klammer` to see which provider is active, whether its
 command is on your |$PATH| and whether a key is set.
 
@@ -378,7 +389,8 @@ decision and the Klammer never needs to know: >lua
 
   require("ai_klammer").setup({
     ai = { provider = { stream = function(messages, config, on_chunk, on_done)
-      -- messages  { { role = "system"|"user", content = string }, ... }
+      -- messages  { { role = "system"|"user"|"assistant",
+      --               content = string }, ... }
       -- config    the resolved config, ai.model and ai.url included
       -- on_chunk  fun(text) appends to the bubble, safe from any thread
       -- on_done   fun(err|nil)

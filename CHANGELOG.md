@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Follow-up questions: while an answer is still on screen, `:Klammer ask`
+  without a range continues that conversation, so `:Klammer ask why?` means
+  why that. A range, or closing the bubble, starts over. Custom providers
+  now also see `assistant` messages; the `claude` provider labels the turns
+- `:Klammer yank [reg]` copies the last whole answer into a register, the
+  one a plain `y` would use by default, so `clipboard` is respected
+
 ### Fixed
 
 - The bubble stayed where it was when the editor was resized, while the

@@ -70,12 +70,31 @@ local function asked(prompt, question, answer)
 end
 
 --- Put a question to the Klammer about the code at hand. Prompts when none is given.
+--- While an answer is still on screen, a question without a range is about
+--- that answer; a range always means new code.
 --- @param question? string
 --- @param range? table { first, last }
 function M.ask(question, range)
   asked("Klammer: ", question, function(input)
-    require("ai_klammer.ai").run(input, range, M.config)
+    local ai = require("ai_klammer.ai")
+    if not range and ai.can_follow_up() then
+      return ai.follow_up(input, M.config)
+    end
+    ai.run(input, range, M.config)
   end)
+end
+
+--- Copy the last whole answer into a register: the one named, or the one a
+--- plain y would use, so 'clipboard' is respected.
+--- @param register? string
+function M.yank(register)
+  local last = require("ai_klammer.ai").last
+  if not last then
+    return vim.notify("ai-klammer: no answer to yank yet", vim.log.levels.INFO, { title = "ai-klammer" })
+  end
+  register = (register and register ~= "") and register or vim.v.register
+  vim.fn.setreg(register, last.answer)
+  vim.notify(("ai-klammer: answer yanked into %s"):format(register), vim.log.levels.INFO, { title = "ai-klammer" })
 end
 
 --- Put a question to the Klammer about the whole project rather than one buffer.

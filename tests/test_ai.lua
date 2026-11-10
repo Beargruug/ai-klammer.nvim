@@ -351,6 +351,70 @@ assert(sent == nil, "a secrets file is never sent, even with consent given")
 assert(not bubble.is_open(), "and no bubble either, which would confirm it exists")
 vim.api.nvim_set_current_buf(buf)
 
+-- Follow-ups and :Klammer yank both work off the last whole answer.
+local heard
+local talker = require("ai_klammer.config").setup({
+  ai = {
+    consent = true,
+    provider = {
+      stream = function(messages, _, on_chunk, on_done)
+        heard = messages
+        on_chunk("Answer to " .. #messages)
+        on_done(nil)
+      end,
+    },
+  },
+})
+local klammer = require("ai_klammer")
+local real_config = klammer.config
+klammer.config = talker
+local function answered(text)
+  vim.wait(500, function()
+    return ai.last ~= nil and ai.last.answer == text
+  end)
+  return ai.last and ai.last.answer
+end
+
+ai.last = nil
+klammer.ask("What is this?", { 1, 3 })
+assert(answered("Answer to 2") == "Answer to 2", "a first question is two messages")
+assert(ai.can_follow_up(), "its answer is on screen, so the next question follows up")
+
+klammer.ask("Why?")
+assert(answered("Answer to 4") == "Answer to 4", "a follow-up is four messages")
+assert(heard[3].role == "assistant" and heard[3].content == "Answer to 2", "the first answer is the model's own turn")
+assert(heard[4].role == "user" and heard[4].content == "Why?", "and the new question comes last")
+
+klammer.ask("And this?", { 1, 3 })
+assert(answered("Answer to 2") == "Answer to 2", "a range is new code, so it starts over")
+
+bubble.close()
+assert(not ai.can_follow_up(), "closing the answer ends the thread")
+ai.last.answer = "stale"
+klammer.ask("Why?")
+assert(answered("Answer to 2") == "Answer to 2", "and the next question starts fresh")
+
+klammer.yank()
+assert(vim.fn.getreg('"') == "Answer to 2", "yank copies the last answer into the unnamed register")
+klammer.yank("a")
+assert(vim.fn.getreg("a") == "Answer to 2", "or the one named")
+klammer.config = real_config
+bubble.close()
+
+-- The claude CLI takes one prompt, so a conversation is spelled out turn by turn.
+local system, prompt = claude.prompt({
+  { role = "system", content = "Be a paperclip." },
+  { role = "user", content = "Hi" },
+})
+assert(system == "Be a paperclip." and prompt == "Hi", "one question goes as it is")
+system, prompt = claude.prompt({
+  { role = "system", content = "Be a paperclip." },
+  { role = "user", content = "Hi" },
+  { role = "assistant", content = "Hello." },
+  { role = "user", content = "Why?" },
+})
+assert(prompt == "User: Hi\n\nAssistant: Hello.\n\nUser: Why?", "a conversation is labelled: " .. prompt)
+
 -- The bubble has to grow as an answer streams in, in place, without reopening.
 local win = bubble.show("Let me unbend for a second...", { language = "en", focus = false })
 local bubble_buf = vim.api.nvim_win_get_buf(win)

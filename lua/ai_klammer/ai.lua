@@ -190,24 +190,17 @@ function M.changes(question, buf, config)
   end)
 end
 
---- Put a question and an already-assembled block of context to the model.
---- @param question string
---- @param body string the context, formatted and already safe to send
-function M.send(question, body, config)
-  config = config or require("ai_klammer").config
+--- The last answer that arrived whole, with the conversation that led to it
+--- and the bubble it is in: { messages, answer, win }. What :Klammer yank
+--- copies, and what a follow-up question continues.
+M.last = nil
 
+--- Stream a conversation into a fresh bubble in the corner.
+local function converse(messages, config)
   local provider = M.resolve(config)
   if not provider then
     return complain(config, "no_provider", tostring(config.ai.provider))
   end
-
-  local messages = {
-    {
-      role = "system",
-      content = config.ai.system .. " Answer in " .. (config.language == "de" and "German." or "English."),
-    },
-    { role = "user", content = question .. "\n\n" .. body },
-  }
 
   local handle, mine
   local finished, cancelled = false, false
@@ -252,6 +245,7 @@ function M.send(question, body, config)
     elseif vim.trim(answer) == "" then
       complain(config, "silent")
     else
+      M.last = { messages = messages, answer = answer, win = mine }
       -- Faintly pleased with itself, as per the system prompt.
       require("ai_klammer.ui.avatar").react("happy")
     end
@@ -268,6 +262,41 @@ function M.send(question, body, config)
     })
     handle = provider.stream(messages, config, on_chunk, on_done)
   end)
+end
+
+--- Put a question and an already-assembled block of context to the model.
+--- @param question string
+--- @param body string the context, formatted and already safe to send
+function M.send(question, body, config)
+  config = config or require("ai_klammer").config
+  converse({
+    {
+      role = "system",
+      content = config.ai.system .. " Answer in " .. (config.language == "de" and "German." or "English."),
+    },
+    { role = "user", content = question .. "\n\n" .. body },
+  }, config)
+end
+
+--- A question continues the last conversation while its answer is still on
+--- screen. Once the bubble is gone, so is the thread: closing it is how you
+--- start over, and nothing is carried along that you can no longer see.
+--- @return boolean
+function M.can_follow_up()
+  return M.last ~= nil and bubble.current() == M.last.win
+end
+
+--- Ask about the answer on screen: the whole conversation goes again, with
+--- the answer as the model's own turn, so "why?" means why that.
+--- @param question string
+function M.follow_up(question, config)
+  config = config or require("ai_klammer").config
+  local messages = vim.deepcopy(M.last.messages)
+  vim.list_extend(messages, {
+    { role = "assistant", content = M.last.answer },
+    { role = "user", content = question },
+  })
+  converse(messages, config)
 end
 
 return M
