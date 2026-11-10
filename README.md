@@ -70,7 +70,7 @@ require("ai_klammer").setup({
     context_lines = 30, -- lines around the cursor when nothing else is found
     max_lines = 400, -- more than this and it refuses to read
     project_budget = 6000, -- rough token ceiling for :Klammer project
-    blocklist = { ".env", "*.pem", "*secret*", ... }, -- files it never reads
+    blocklist = { ".env", "*.pem", "*secret*", ... }, -- files it never reads; yours add to these
     redact = true, -- strip recognisable API keys out of the code before sending
     consent = nil, -- nil asks once and remembers; true accepts up front
     answer_timeout = "auto", -- a finished answer fades after a reading time; ms, or false to keep it
@@ -239,7 +239,8 @@ sent, and remembers the answer. `[N]o` declines this one question and it will as
 by the triggers, so no bubble ever appears there offering to help. It stays quiet rather than
 announcing the refusal, because "I won't read that" tells anyone watching your screen that the
 file is worth reading. Globs without a slash match the file name; globs with one match the
-whole path.
+whole path. Yours are added to the defaults, so listing one more never unblocks `.env`; a glob
+with a leading `!`, like `"!*secret*"`, takes a default back out.
 
 **It strips keys out of what it does send.** `ai.redact` removes recognisable credentials —
 private key blocks, `sk-…`, `ghp_…`, `AKIA…`, `xox…`, and `password = "…"`-style assignments —

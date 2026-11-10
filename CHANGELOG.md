@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `ai.blocklist` adds to the default list instead of replacing it: a list
+  with one glob of your own quietly unblocked `.env`, keys and `~/.ssh`.
+  A glob with a leading `!` takes a default back out
+
 ### Fixed
 
 - The git trigger never fired with an `updatetime` under 300 ms, as in

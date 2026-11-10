@@ -105,6 +105,31 @@ local function validate(name, value, validator, optional, message)
   vim.validate({ [name] = { value, validator, message or optional } })
 end
 
+--- Your globs on top of the defaults, not instead of them: replacing meant
+--- one glob of your own quietly unblocked .env, keys and ~/.ssh. A glob with
+--- a leading ! takes a default back out instead.
+--- @param globs? string[] from your config, nil for none
+--- @return string[]
+local function blocklist(globs)
+  local dropped, out = {}, {}
+  for _, glob in ipairs(globs or {}) do
+    if vim.startswith(glob, "!") then
+      dropped[glob:sub(2)] = true
+    end
+  end
+  for _, glob in ipairs(M.defaults.ai.blocklist) do
+    if not dropped[glob] then
+      out[#out + 1] = glob
+    end
+  end
+  for _, glob in ipairs(globs or {}) do
+    if not vim.startswith(glob, "!") and not vim.tbl_contains(out, glob) then
+      out[#out + 1] = glob
+    end
+  end
+  return out
+end
+
 function M.setup(opts)
   local config = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts or {})
 
@@ -127,6 +152,7 @@ function M.setup(opts)
   validate("ai.max_lines", config.ai.max_lines, "number")
   validate("ai.project_budget", config.ai.project_budget, "number")
   validate("ai.blocklist", config.ai.blocklist, "table")
+  config.ai.blocklist = blocklist(opts and opts.ai and opts.ai.blocklist)
   validate("ai.redact", config.ai.redact, "boolean")
   validate("ai.consent", config.ai.consent, "boolean", true)
   validate("ai.answer_timeout", config.ai.answer_timeout, function(timeout)

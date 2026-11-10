@@ -155,8 +155,11 @@ ai.project_budget ~
 ai.blocklist ~
     Globs for files the Klammer never reads and never mentions, see
     |ai-klammer-privacy|. A glob without a slash is matched against the file
-    name, one with a slash against the whole path. Setting this replaces the
-    default list rather than adding to it.
+    name, one with a slash against the whole path. Your globs are added to
+    the default list, not put in its place; a glob with a leading `!` takes
+    a default back out: >lua
+      blocklist = { "*.sqlite", "!*secret*" }
+<
 
 ai.redact ~
     Strip recognisable credentials out of the code before it is sent. On by

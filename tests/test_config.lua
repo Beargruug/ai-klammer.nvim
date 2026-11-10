@@ -31,4 +31,19 @@ assert(not pcall(config.setup, { ai = { brief = "very" } }), "brief is a yes or 
 assert(not pcall(config.setup, { annoyance = "loud" }), "wrong type should fail")
 assert(not pcall(config.setup, { annoyance = 9 }), "out of range should fail")
 
+-- Regression: a blocklist of your own replaced the defaults, so adding one
+-- glob quietly unblocked .env, keys and ~/.ssh. Yours now go on top.
+local defaults = require("ai_klammer.config").defaults.ai.blocklist
+local added = require("ai_klammer.config").setup({ ai = { blocklist = { "*.sqlite" } } }).ai.blocklist
+assert(vim.tbl_contains(added, "*.sqlite"), "your glob is in")
+assert(vim.tbl_contains(added, ".env"), "and the defaults are still there: " .. vim.inspect(added))
+assert(#added == #defaults + 1, "each of them once")
+-- "!glob" takes a default back out, for code that happens to be called secrets.lua.
+local dropped = require("ai_klammer.config").setup({ ai = { blocklist = { "!*secret*", "*.sqlite" } } }).ai.blocklist
+assert(not vim.tbl_contains(dropped, "*secret*"), "a ! takes a default out")
+assert(not vim.tbl_contains(dropped, "!*secret*"), "and is not a glob itself")
+assert(vim.tbl_contains(dropped, ".env") and vim.tbl_contains(dropped, "*.sqlite"), "the rest stays")
+assert(#require("ai_klammer.config").setup().ai.blocklist == #defaults, "no blocklist of your own, the defaults")
+assert(#defaults == 20, "and setup leaves the defaults table alone")
+
 print("ok")
