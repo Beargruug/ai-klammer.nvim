@@ -108,4 +108,28 @@ end
 
 assert(select(2, gather("why is it so?")) == "no_hits", "a question with no keywords is not a search")
 
+-- The project is the repository the current file is in, not Neovim's cwd:
+-- started in ~, the cwd would be everything you own.
+if vim.fn.executable("rg") == 1 and vim.fn.executable("git") == 1 then
+  local home = vim.fn.tempname()
+  local repo = home .. "/repo"
+  vim.fn.mkdir(repo, "p")
+  vim.fn.writefile({ "local zebrafinch = 1" }, home .. "/outside.lua")
+  vim.fn.writefile({ "local zebrafinch = 2" }, repo .. "/inside.lua")
+  vim.system({ "git", "init", "-q" }, { cwd = repo }):wait()
+  vim.system({ "git", "add", "." }, { cwd = repo }):wait()
+
+  local before = vim.fn.getcwd()
+  vim.cmd.cd(home)
+  vim.cmd.edit(repo .. "/inside.lua")
+  assert(search.root() == repo or vim.uv.fs_realpath(search.root()) == vim.uv.fs_realpath(repo), "the root is the repo")
+  local found = gather("where is zebrafinch")
+  vim.cmd.cd(before)
+  vim.cmd("bwipeout!")
+  vim.fn.delete(home, "rf")
+
+  assert(found and found:find("inside.lua", 1, true), "the repository is searched:\n" .. tostring(found))
+  assert(not found:find("outside.lua", 1, true), "and nothing around it:\n" .. found)
+end
+
 print("ok")

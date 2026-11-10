@@ -449,6 +449,8 @@ rejected in |ai_klammer.setup()|, not at the first question.
 
   :Klammer project why does the consent prompt fire twice
 <
+The repository is the git repository the current file is in, wherever
+Neovim's working directory is; outside of one it is the working directory.
 The content words come out of {q} — at most eight, filler words dropped — and
 go to `rg` as fixed strings, up to three hits per file. The files that matched
 are sent best first, together with one line naming the directories in the

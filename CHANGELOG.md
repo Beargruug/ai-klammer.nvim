@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `:Klammer project` searched Neovim's working directory, not the project:
+  started in `~`, it grepped your whole home directory and could send
+  matching lines from unrelated files. It now searches the git repository
+  the current file is in, and the working directory only outside of one
+
 ## [0.6.1] — the Klammer knows when to hang up
 
 ### Added

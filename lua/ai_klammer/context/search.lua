@@ -64,8 +64,10 @@ end
 --- most lines: counting lines puts the changelog above the code, because
 --- prose repeats one common word while the real file hits several of them.
 --- @param output string
+--- @param root? string where rg ran, so its relative paths can be checked
+--- against the blocklist as the files they are, wherever Neovim's cwd is
 --- @return string|nil body nil when nothing readable matched
-function M.body(output, config)
+function M.body(output, config, root)
   local secrets = require("ai_klammer.context.secrets")
   local hits, matched, paths = {}, {}, {}
 
@@ -74,7 +76,7 @@ function M.body(output, config)
     local path = data and data.path and data.path.text
     local line = data and data.lines and data.lines.text
     -- A match inside a blocklisted file is as sensitive as the file itself.
-    if path and line and not secrets.blocked(path, config) then
+    if path and line and not secrets.blocked(root and (root .. "/" .. path) or path, config) then
       if not hits[path] then
         hits[path], matched[path] = {}, {}
         paths[#paths + 1] = path
@@ -120,6 +122,14 @@ function M.body(output, config)
   return config.ai.redact and (secrets.redact(body)) or body
 end
 
+--- The project a question is about: the repository the current file is in,
+--- not Neovim's working directory. Started in ~, that would be every file you
+--- own, searched slowly and sent along whenever a line matched.
+--- @return string
+function M.root()
+  return vim.fs.root(0, ".git") or vim.fn.getcwd()
+end
+
 --- Search the project for whatever a question is about. ripgrep and git run
 --- side by side and off the main loop, so a big repository does not freeze
 --- the editor while they read it.
@@ -144,12 +154,13 @@ function M.gather(question, config, done)
     command[#command + 1] = word
   end
 
+  local root = M.root()
   local hits, files
   local function finish()
     if not hits or not files then
       return
     end
-    local body = M.body(hits, config)
+    local body = M.body(hits, config, root)
     if not body then
       return done(nil, "no_hits")
     end
@@ -159,7 +170,7 @@ function M.gather(question, config, done)
 
   vim.system(
     command,
-    { text = true },
+    { text = true, cwd = root },
     vim.schedule_wrap(function(result)
       hits = result.stdout or ""
       finish()
@@ -172,7 +183,7 @@ function M.gather(question, config, done)
   end
   vim.system(
     { "git", "ls-files" },
-    { text = true },
+    { text = true, cwd = root },
     vim.schedule_wrap(function(result)
       files = result.code == 0 and vim.split(result.stdout or "", "\n", { trimempty = true }) or {}
       finish()

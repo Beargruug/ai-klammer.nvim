@@ -205,7 +205,8 @@ answer into the register a plain `y` would use, or `:Klammer yank +` into the on
 
 ## Asking about the whole project
 
-`:Klammer project where is the bubble drawn` searches the repository instead of the buffer.
+`:Klammer project where is the bubble drawn` searches the repository instead of the buffer: the
+git repository the current file is in, or Neovim's working directory outside of one.
 It pulls the content words out of your question, hands them to `ripgrep`, and sends the model
 the files that matched the most of them, best first, up to `ai.project_budget` tokens — plus
 one line naming the directories in the repo so it knows what it is looking at.
