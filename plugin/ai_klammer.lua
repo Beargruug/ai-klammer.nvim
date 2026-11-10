@@ -15,7 +15,8 @@ vim.api.nvim_create_autocmd("ColorScheme", {
   callback = highlights,
 })
 
-local subcommands = { "hello", "show", "hide", "focus", "close", "yank", "reset", "ask", "explain", "project" }
+local subcommands =
+  { "hello", "show", "hide", "focus", "close", "yank", "last", "history", "reset", "ask", "explain", "project" }
 
 vim.api.nvim_create_user_command("Klammer", function(args)
   local name = args.fargs[1] or "hello"

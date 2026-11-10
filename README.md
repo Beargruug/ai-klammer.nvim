@@ -73,6 +73,7 @@ require("ai_klammer").setup({
     consent = nil, -- nil asks once and remembers; true accepts up front
     answer_timeout = "auto", -- a finished answer fades after a reading time; ms, or false to keep it
     words_per_minute = 240, -- your reading pace for "auto": lower stays longer
+    max_context = 150000, -- rough tokens; a follow-up past this starts a new conversation
   },
 })
 ```
@@ -189,10 +190,15 @@ the words at `ai.words_per_minute`. It waits while you are in it with `:Klammer 
 `ai.answer_timeout` to a number of milliseconds instead, or `false` to keep answers until you
 close them.
 
-While an answer is still on screen, `:Klammer ask` without a selection is a follow-up: the
-code, the question and the answer go along again, so `:Klammer ask why?` means why *that*.
-A selection, or closing the bubble, starts over. `:Klammer yank` copies the last answer into
-the register a plain `y` would use, or `:Klammer yank +` into the one you name.
+After an answer, `:Klammer ask` without a selection is a follow-up: the code, the question and
+the answer go along again, so `:Klammer ask why?` means why *that*. The conversation outlasts
+the answer fading away. It starts over when you close the answer yourself (`q`, `<Esc>`,
+`:Klammer close`), select code, run `:Klammer explain`, or ask from another buffer, and once it
+passes `ai.max_context` tokens (150k by default), since every follow-up sends all of it again.
+
+Missed something? `:Klammer last` shows the last answer again, `:Klammer history` picks one of
+the last ten, and either one picks its conversation back up. `:Klammer yank` copies the last
+answer into the register a plain `y` would use, or `:Klammer yank +` into the one you name.
 
 ## Asking about the whole project
 
@@ -288,6 +294,8 @@ again" choices. `:Klammer reset` does not touch it; delete the file to make it f
 | `:Klammer focus`          | Go into the bubble to scroll or copy; `q` comes back     |
 | `:Klammer close`          | Close the bubble, cancelling an answer still coming      |
 | `:Klammer yank [reg]`     | Copy the last answer into a register                     |
+| `:Klammer last`           | Show the last answer again                               |
+| `:Klammer history`        | Pick one of the last ten answers and show it again       |
 | `:Klammer reset`          | Forget every "never again" and the cooldown              |
 | `:[range]Klammer explain` | Explain the selection, the function, or the lines nearby |
 | `:[range]Klammer ask [q]` | Ask anything about that code; prompts without `q`        |

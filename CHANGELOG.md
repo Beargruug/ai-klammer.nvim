@@ -8,10 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Follow-up questions: while an answer is still on screen, `:Klammer ask`
-  without a range continues that conversation, so `:Klammer ask why?` means
-  why that. A range, or closing the bubble, starts over. Custom providers
-  now also see `assistant` messages; the `claude` provider labels the turns
+- Follow-up questions: after an answer, `:Klammer ask` without a range
+  continues that conversation, so `:Klammer ask why?` means why that. It
+  outlasts the answer fading away; `q`, `<Esc>` or `:Klammer close` on the
+  answer, a range, `:Klammer explain` or another buffer start over, and so
+  does a conversation past `ai.max_context` tokens (default 150000). Custom
+  providers now also see `assistant` messages; the `claude` provider labels
+  the turns
+- `:Klammer last` shows the last answer again, and `:Klammer history` picks
+  one of the last ten. Either picks its conversation back up
 - `:Klammer yank [reg]` copies the last whole answer into a register, the
   one a plain `y` would use by default, so `clipboard` is respected
 

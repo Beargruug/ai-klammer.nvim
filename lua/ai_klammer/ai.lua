@@ -199,10 +199,32 @@ function M.reading_time(text, words_per_minute)
   return 6000 + math.ceil(words * 60000 / words_per_minute)
 end
 
---- The last answer that arrived whole, with the conversation that led to it
---- and the bubble it is in: { messages, answer, win }. What :Klammer yank
---- copies, and what a follow-up question continues.
+--- The last answer that arrived whole, with the conversation that led to it:
+--- { messages, answer, win, buf, open }. What :Klammer yank copies, and, while
+--- `open`, what a follow-up question continues.
 M.last = nil
+
+--- Answers worth seeing again, newest first: :Klammer history picks from these.
+M.history = {}
+M.history_size = 10
+
+--- Once an answer is complete, not while it streams: a slow model is not a
+--- reason to take the answer away.
+local function fade(win, answer, config)
+  local timeout = config.ai.answer_timeout
+  if timeout then
+    bubble.fade(win, timeout == "auto" and M.reading_time(answer, config.ai.words_per_minute) or timeout)
+  end
+end
+
+--- End the conversation; the answer stays for :Klammer yank. Only for a
+--- deliberate close: a fade or a quip pushing the answer aside is not you
+--- saying you are done.
+function M.forget()
+  if M.last then
+    M.last.open = false
+  end
+end
 
 --- Stream a conversation into a fresh bubble in the corner.
 local function converse(messages, config)
@@ -214,6 +236,7 @@ local function converse(messages, config)
   local handle, mine
   local finished, cancelled = false, false
   local answer = ""
+  local asked_from = vim.api.nvim_get_current_buf()
 
   -- Once, and only while it runs. A provider that cannot be cancelled
   -- returned no handle; its text is simply dropped.
@@ -254,13 +277,12 @@ local function converse(messages, config)
     elseif vim.trim(answer) == "" then
       complain(config, "silent")
     else
-      M.last = { messages = messages, answer = answer, win = mine }
-      -- Once it is complete, not while it streams: a slow model is not a
-      -- reason to take the answer away.
-      local timeout = config.ai.answer_timeout
-      if timeout then
-        bubble.fade(mine, timeout == "auto" and M.reading_time(answer, config.ai.words_per_minute) or timeout)
+      M.last = { messages = messages, answer = answer, win = mine, buf = asked_from, open = true }
+      table.insert(M.history, 1, M.last)
+      for index = #M.history, M.history_size + 1, -1 do
+        M.history[index] = nil
       end
+      fade(mine, answer, config)
       -- Faintly pleased with itself, as per the system prompt.
       require("ai_klammer.ui.avatar").react("happy")
     end
@@ -274,6 +296,8 @@ local function converse(messages, config)
       mood = "thinking",
       focus = false,
       on_close = cancel,
+      -- q or <Esc> in the answer: you are done with it, not just with the bubble.
+      on_no = M.forget,
     })
     handle = provider.stream(messages, config, on_chunk, on_done)
   end)
@@ -293,12 +317,32 @@ function M.send(question, body, config)
   }, config)
 end
 
---- A question continues the last conversation while its answer is still on
---- screen. Once the bubble is gone, so is the thread: closing it is how you
---- start over, and nothing is carried along that you can no longer see.
+--- A question continues the last conversation until you end it: q, <Esc> or
+--- :Klammer close on the answer, a selection, :Klammer explain, or asking
+--- from another buffer, where "why?" cannot be about the code over there.
+--- The answer fading away does not end it; you may well still be thinking.
 --- @return boolean
 function M.can_follow_up()
-  return M.last ~= nil and bubble.current() == M.last.win
+  return M.last ~= nil and M.last.open == true and M.last.buf == vim.api.nvim_get_current_buf()
+end
+
+--- Roughly how many tokens the conversation would be with `question` added,
+--- at four characters to the token, the same count :Klammer project uses.
+--- @return integer
+function M.tokens(question)
+  local characters = #question + (M.last and #M.last.answer or 0)
+  for _, message in ipairs(M.last and M.last.messages or {}) do
+    characters = characters + #message.content
+  end
+  return math.ceil(characters / 4)
+end
+
+--- Whether a follow-up still fits in ai.max_context. Every follow-up sends the
+--- whole conversation again, so a long one gets slow and expensive and then
+--- runs out of window: past the limit the next question starts over instead.
+--- @return boolean
+function M.fits(question, config)
+  return M.tokens(question) <= config.ai.max_context
 end
 
 --- Ask about the answer on screen: the whole conversation goes again, with
@@ -312,6 +356,31 @@ function M.follow_up(question, config)
     { role = "user", content = question },
   })
   converse(messages, config)
+end
+
+--- What an answer was to, for a list: the first line of the last question.
+--- @return string
+function M.label(entry)
+  local question = entry.messages[#entry.messages].content
+  return vim.split(question, "\n", { plain = true })[1]
+end
+
+--- Show an answer again, the last one by default, for when it faded before
+--- you were done. Seeing it again picks the conversation back up, from the
+--- buffer you are in now: you asked for it, so "why?" is about it.
+--- @param entry? table one of M.history
+--- @return boolean false when there is no answer yet
+function M.reopen(entry, config)
+  config = config or require("ai_klammer").config
+  entry = entry or M.last
+  if not entry then
+    return false
+  end
+  entry.win = bubble.show(entry.answer, { language = config.language, focus = false, on_no = M.forget })
+  entry.buf, entry.open = vim.api.nvim_get_current_buf(), true
+  M.last = entry
+  fade(entry.win, entry.answer, config)
+  return true
 end
 
 return M

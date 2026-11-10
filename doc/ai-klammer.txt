@@ -69,6 +69,7 @@ With lazy.nvim: >lua
       consent = nil,
       answer_timeout = "auto",
       words_per_minute = 240,
+      max_context = 150000,
     },
   })
 <
@@ -175,6 +176,11 @@ ai.words_per_minute ~
     Your reading pace for `answer_timeout = "auto"`. Default 240, slow on
     purpose; lower it and answers stay longer, raise it and they go sooner.
 
+ai.max_context ~
+    Rough token ceiling for one conversation, at four characters to the
+    token. A follow-up that would pass it starts a new conversation instead.
+    Default 150000; lower it for a model with a small window.
+
 ==============================================================================
 4. COMMANDS                                               *ai-klammer-commands*
 
@@ -187,6 +193,10 @@ ai.words_per_minute ~
                         cursor back where it was.
 :Klammer close          Close the bubble, cancelling an answer still on its
                         way. The Klammer stays.
+:Klammer last           Show the last answer again, and pick its
+                        conversation back up.
+:Klammer history        Pick one of the last ten answers with
+                        |vim.ui.select()| and show it again.
 :Klammer yank [{reg}]   Copy the last whole answer into {reg}, or into the
                         register a plain `y` would use, so 'clipboard' is
                         respected.
@@ -194,8 +204,8 @@ ai.words_per_minute ~
 :[range]Klammer explain Explain the range, or the function around the cursor,
                         or the lines nearby. See |ai-klammer-asking|.
 :[range]Klammer ask {q} Ask {q} about the same code. Without {q} it asks you
-                        first through |vim.ui.input()|. Without a range, while
-                        an answer is on screen, {q} is a follow-up to it. See
+                        first through |vim.ui.input()|. Without a range,
+                        after an answer, {q} is a follow-up to it. See
                         |ai-klammer-follow-up|.
 :Klammer project {q}    Ask {q} about the whole repository instead of the
                         buffer. See |ai-klammer-project|. Without {q} it asks
@@ -299,10 +309,18 @@ not the whole function. For the diagnostics trigger the error messages are
 sent along with the code.
 
                                                        *ai-klammer-follow-up*
-While an answer is still on screen, `:Klammer ask` without a range continues
-that conversation: the question, the code and the answer go along again, so
-"why?" means why that. A range always means new code and starts over, and so
-does closing the bubble. Nothing is carried along that is no longer on screen.
+After an answer, `:Klammer ask` without a range continues that conversation:
+the question, the code and the answer go along again, so "why?" means why
+that. The answer fading away does not end it. These do:
+
+    - `q` or `<Esc>` in the answer, or |:Klammer| `close`
+    - a range, which is new code, or |:Klammer| `explain`
+    - asking from another buffer than the one the conversation began in
+    - the conversation passing `ai.max_context` tokens: every follow-up sends
+      all of it again, so past the limit the question starts a new one
+
+|:Klammer| `last` shows the last answer again and `history` picks one of the
+last ten; either picks its conversation back up, in the buffer you are in.
 
 Run |:checkhealth| `ai_klammer` to see which provider is active, whether its
 command is on your |$PATH| and whether a key is set.

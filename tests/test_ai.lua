@@ -388,11 +388,73 @@ assert(heard[4].role == "user" and heard[4].content == "Why?", "and the new ques
 klammer.ask("And this?", { 1, 3 })
 assert(answered("Answer to 2") == "Answer to 2", "a range is new code, so it starts over")
 
+-- Something else pushing the answer aside, a fade or a quip, is not you
+-- saying you are done.
 bubble.close()
-assert(not ai.can_follow_up(), "closing the answer ends the thread")
+assert(ai.can_follow_up(), "an answer that went away on its own keeps the thread")
+
+-- Another buffer is other code: "why?" over there is not about this answer.
+local elsewhere = vim.api.nvim_create_buf(true, false)
+vim.api.nvim_set_current_buf(elsewhere)
+assert(not ai.can_follow_up(), "asking from another buffer starts over")
+vim.api.nvim_set_current_buf(buf)
+assert(ai.can_follow_up(), "and coming back picks it up again")
+
+klammer.close()
+assert(not ai.can_follow_up(), ":Klammer close ends the thread")
 ai.last.answer = "stale"
 klammer.ask("Why?")
 assert(answered("Answer to 2") == "Answer to 2", "and the next question starts fresh")
+
+-- q in the answer ends it as well.
+bubble.focus()
+vim.api.nvim_feedkeys("q", "x", false)
+vim.wait(50)
+assert(not ai.can_follow_up(), "q in the answer ends the thread")
+
+-- :Klammer last shows the answer again and picks the thread back up.
+bubble.close()
+klammer.last()
+assert(bubble.is_open() and ai.last.win == bubble.current(), "the last answer is back on screen")
+local again = table.concat(vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(bubble.current()), 0, -1, false))
+assert(again == "Answer to 2", "with its text: " .. again)
+assert(ai.can_follow_up(), "and you can ask about it again")
+
+-- :Klammer history offers the last answers, newest first, by their question.
+assert(#ai.history >= 2 and ai.history[1] == ai.last, "newest first")
+assert(ai.label(ai.history[1]) == "Why?", "listed by the question: " .. ai.label(ai.history[1]))
+local real_select = vim.ui.select
+vim.ui.select = function(items, opts, choose)
+  assert(opts.format_item(items[2]) ~= nil, "every entry has a label")
+  choose(items[2])
+end
+local older = ai.history[2]
+klammer.history()
+vim.ui.select = real_select
+assert(ai.last == older and bubble.current() == older.win, "picking one shows it and makes it the thread")
+for _ = 1, ai.history_size + 2 do
+  table.insert(ai.history, 1, older)
+end
+ai.send("One more?", "code", talker)
+vim.wait(500, function()
+  return ai.last ~= older
+end)
+assert(ai.history[1] ~= older, "the new answer is in")
+assert(#ai.history == ai.history_size, "only the last few are kept")
+
+-- A conversation past ai.max_context starts over instead of growing further.
+assert(ai.tokens("abcd") >= 1 + math.ceil(#ai.last.answer / 4), "the question and the answer both count")
+assert(ai.fits("Why?", talker), "a short conversation fits")
+local tight = vim.tbl_deep_extend("force", talker, { ai = { max_context = 1 } })
+assert(not ai.fits("Why?", tight), "and does not under a tiny limit")
+klammer.config = tight
+klammer.ask("Why?")
+vim.wait(500, function()
+  return heard and #heard == 2 and heard[2].content:find("^Why%?") ~= nil
+end)
+assert(#heard == 2, "past the limit, the follow-up is sent as a new question: " .. #heard)
+klammer.config = talker
+assert(not pcall(require("ai_klammer.config").setup, { ai = { max_context = 0 } }), "a limit of zero is refused")
 
 klammer.yank()
 assert(vim.fn.getreg('"') == "Answer to 2", "yank copies the last answer into the unnamed register")
