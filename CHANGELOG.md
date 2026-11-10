@@ -6,7 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `ai.request_timeout` (default 60000 ms): a request that goes that long
+  without a word is cancelled, and the Klammer says so, instead of thinking
+  forever. Every chunk restarts the clock, so long answers are never cut.
+  `false` waits forever
+
 ### Fixed
+
+- An unreachable API host left the bubble thinking until the OS gave up on
+  the connection; curl now stops trying after ten seconds and the Klammer
+  says it cannot reach the host
 
 - Remarks like "That did not work" or "There is nothing there to explain"
   stayed in the corner until closed; they now fade like answers, by

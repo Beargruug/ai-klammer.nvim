@@ -81,6 +81,8 @@ M.defaults = {
     words_per_minute = 240,
     -- rough token ceiling for a conversation; a follow-up past it starts a new one
     max_context = 150000,
+    -- milliseconds without a word before a request is given up; false waits forever
+    request_timeout = 60000,
   },
 }
 
@@ -131,6 +133,9 @@ function M.setup(opts)
   validate("ai.max_context", config.ai.max_context, function(limit)
     return type(limit) == "number" and limit > 0
   end, false, "a number of tokens above 0")
+  validate("ai.request_timeout", config.ai.request_timeout, function(timeout)
+    return timeout == false or (type(timeout) == "number" and timeout > 0)
+  end, false, "milliseconds, or false")
   validate("ai.words_per_minute", config.ai.words_per_minute, function(speed)
     return type(speed) == "number" and speed > 0
   end, false, "a number above 0")

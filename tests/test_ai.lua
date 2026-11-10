@@ -68,6 +68,7 @@ openai.stream(
 vim.system = real_system
 
 assert(not argv:find("sk-secret-value", 1, true), "the key is not in argv")
+assert(argv:find("--connect-timeout", 1, true), "an unreachable host fails fast")
 assert(header_lines:find("sk-secret-value", 1, true), "it is in the config file curl reads")
 assert(header_mode == tonumber("600", 8), "which only its owner can read")
 
@@ -475,6 +476,66 @@ vim.wait(300, function()
   return not vim.api.nvim_win_is_valid(quick_win)
 end)
 assert(not vim.api.nvim_win_is_valid(quick_win), "the answer fades once it is complete")
+
+-- A request that goes quiet is hung up on, and says so.
+local hung_up = false
+local mute = vim.tbl_deep_extend("force", talker, {
+  ai = {
+    request_timeout = 50,
+    provider = {
+      stream = function()
+        return {
+          kill = function()
+            hung_up = true
+          end,
+        }
+      end,
+    },
+  },
+})
+ai.send("Hello?", "code", mute)
+vim.wait(300, function()
+  return hung_up
+end)
+assert(hung_up, "a silent request is killed after request_timeout")
+local said = table.concat(vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(bubble.current()), 0, -1, false), " ")
+assert(said:find("hung up", 1, true), "and the Klammer says why: " .. said)
+bubble.close()
+
+-- Quiet, not slow: a chunk every 30 ms keeps a 50 ms timeout from firing.
+local cut = false
+local steady = vim.tbl_deep_extend("force", talker, {
+  ai = {
+    request_timeout = 50,
+    answer_timeout = false,
+    provider = {
+      stream = function(_, _, on_chunk, on_done)
+        local count = 0
+        local function tick()
+          count = count + 1
+          if count > 6 then
+            return on_done(nil)
+          end
+          on_chunk("word ")
+          vim.defer_fn(tick, 30)
+        end
+        tick()
+        return {
+          kill = function()
+            cut = true
+          end,
+        }
+      end,
+    },
+  },
+})
+ai.last = nil
+ai.send("Slowly?", "code", steady)
+vim.wait(500, function()
+  return ai.last ~= nil
+end)
+assert(not cut and ai.last and vim.trim(ai.last.answer) == vim.trim(("word "):rep(6)), "a steady answer is never cut")
+bubble.close()
 
 -- So does a complaint: "nothing to explain" is read once, not kept.
 vim.api.nvim_set_current_buf(buf)

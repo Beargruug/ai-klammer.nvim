@@ -21,6 +21,10 @@ assert(not pcall(config.setup, { ai = { answer_timeout = "soon" } }), "and nothi
 assert(config.setup({ ai = { words_per_minute = 120 } }).ai.words_per_minute == 120, "slow readers set their pace")
 assert(not pcall(config.setup, { ai = { words_per_minute = 0 } }), "a reading speed of zero never ends")
 
+assert(defaults.ai.request_timeout == 60000, "a minute of silence before giving up")
+assert(config.setup({ ai = { request_timeout = false } }).ai.request_timeout == false, "or never")
+assert(not pcall(config.setup, { ai = { request_timeout = -1 } }), "but not a negative minute")
+
 assert(not pcall(config.setup, { annoyance = "loud" }), "wrong type should fail")
 assert(not pcall(config.setup, { annoyance = 9 }), "out of range should fail")
 

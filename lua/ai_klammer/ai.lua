@@ -26,6 +26,7 @@ local phrases = {
     unreachable = "I cannot reach %s. Is it running? :checkhealth ai_klammer knows more.",
     failed = "That did not work: %s",
     silent = "The model said nothing at all. I know the feeling.",
+    stalled = "Not a word for %d seconds, so I hung up. Ask again, or raise ai.request_timeout if it thinks slowly.",
     no_rg = "I look things up with ripgrep, and ripgrep is not on your PATH. Install it and ask me again.",
     no_hits = "I searched the whole project and found nothing to do with that. Try words that appear in the code.",
     no_changes = "I asked git, and it has no changes I could show you. Committed in the meantime?",
@@ -41,6 +42,7 @@ local phrases = {
     unreachable = "Ich erreiche %s nicht. Läuft das? :checkhealth ai_klammer weiß mehr.",
     failed = "Das hat nicht geklappt: %s",
     silent = "Das Modell hat gar nichts gesagt. Das Gefühl kenne ich.",
+    stalled = "%d Sekunden kein Wort, also habe ich aufgelegt. Frag noch mal, oder erhöh ai.request_timeout, falls es langsam denkt.",
     no_rg = "Ich schlage mit ripgrep nach, und ripgrep liegt nicht in deinem PATH. Installier es und frag noch mal.",
     no_hits = "Ich habe das ganze Projekt durchsucht und nichts dazu gefunden. Nimm Wörter, die im Code vorkommen.",
     no_changes = "Ich habe git gefragt, und da sind keine Änderungen, die ich zeigen könnte. Zwischendurch committet?",
@@ -56,7 +58,7 @@ local function say(language, key, ...)
 end
 
 --- A broken request knocks the Klammer out; everything else merely annoys it.
-local moods = { failed = "dead", unreachable = "dead", silent = "dead" }
+local moods = { failed = "dead", unreachable = "dead", silent = "dead", stalled = "dead" }
 
 --- Take a bubble away once there has been time to read it, by
 --- ai.answer_timeout. Answers start the clock once they are complete, not
@@ -242,9 +244,22 @@ local function converse(messages, config)
   local answer = ""
   local asked_from = vim.api.nvim_get_current_buf()
 
+  -- Hangs up on a request that has gone quiet for ai.request_timeout. Quiet,
+  -- not slow: every chunk restarts the clock, so a long answer that keeps
+  -- coming is never cut off, and a stalled one does not think forever.
+  local stall
+  local function unwatch()
+    if stall then
+      stall:stop()
+      stall:close()
+      stall = nil
+    end
+  end
+
   -- Once, and only while it runs. A provider that cannot be cancelled
   -- returned no handle; its text is simply dropped.
   local function cancel()
+    unwatch()
     if handle and not finished and not cancelled then
       cancelled = true
       handle:kill(15)
@@ -254,6 +269,29 @@ local function converse(messages, config)
   -- the first one's last words must not land in the second one's bubble.
   local function ours()
     return mine ~= nil and bubble.current() == mine
+  end
+
+  local function watch()
+    local timeout = config.ai.request_timeout
+    if not timeout or finished or cancelled then
+      return
+    end
+    stall = stall or vim.uv.new_timer()
+    stall:stop()
+    stall:start(
+      timeout,
+      0,
+      vim.schedule_wrap(function()
+        if not stall or finished then
+          return
+        end
+        local waiting = ours()
+        cancel()
+        if waiting then
+          complain(config, "stalled", math.ceil(timeout / 1000))
+        end
+      end)
+    )
   end
 
   local on_chunk = vim.schedule_wrap(function(text)
@@ -267,10 +305,12 @@ local function converse(messages, config)
     end
     answer = answer .. text
     bubble.update(answer)
+    watch()
   end)
 
   local on_done = vim.schedule_wrap(function(err)
     finished = true
+    unwatch()
     if not ours() then
       return
     end
@@ -303,6 +343,7 @@ local function converse(messages, config)
       -- q or <Esc> in the answer: you are done with it, not just with the bubble.
       on_no = M.forget,
     })
+    watch()
     handle = provider.stream(messages, config, on_chunk, on_done)
   end)
 end

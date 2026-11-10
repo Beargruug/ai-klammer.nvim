@@ -76,6 +76,7 @@ require("ai_klammer").setup({
     answer_timeout = "auto", -- a finished answer fades after a reading time; ms, or false to keep it
     words_per_minute = 240, -- your reading pace for "auto": lower stays longer
     max_context = 150000, -- rough tokens; a follow-up past this starts a new conversation
+    request_timeout = 60000, -- ms without a word before it hangs up; false waits forever
   },
 })
 ```

@@ -67,6 +67,10 @@ function M.curl(request, on_chunk, on_done)
       "curl",
       "-sS",
       "--no-buffer",
+      -- An unreachable host fails in seconds, as "cannot reach", instead of
+      -- leaving ai.request_timeout to find out.
+      "--connect-timeout",
+      "10",
       "-X",
       "POST",
       request.url,

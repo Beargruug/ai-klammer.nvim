@@ -70,6 +70,7 @@ With lazy.nvim: >lua
       answer_timeout = "auto",
       words_per_minute = 240,
       max_context = 150000,
+      request_timeout = 60000,
     },
   })
 <
@@ -180,6 +181,13 @@ ai.max_context ~
     Rough token ceiling for one conversation, at four characters to the
     token. A follow-up that would pass it starts a new conversation instead.
     Default 150000; lower it for a model with a small window.
+
+ai.request_timeout ~
+    Milliseconds without a word from the model before the Klammer hangs up
+    and says so. Every piece of the answer restarts the clock, so a long
+    answer that keeps coming is never cut off. Default 60000, enough for a
+    model that thinks before it speaks; `false` waits forever. An unreachable
+    API host fails sooner, after ten seconds, as "cannot reach".
 
 ==============================================================================
 4. COMMANDS                                               *ai-klammer-commands*
