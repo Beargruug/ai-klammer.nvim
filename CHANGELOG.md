@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] — the Klammer sticks to English
+
 ### Removed
 
 - German: the `language` option, the German quips, phrases and `J`/`N`/`W`
