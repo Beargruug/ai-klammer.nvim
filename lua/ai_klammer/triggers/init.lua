@@ -30,32 +30,52 @@ function M.ignored(buf, config)
     or require("ai_klammer.context.secrets").blocked(vim.api.nvim_buf_get_name(buf), config)
 end
 
---- Lines either side of the regex, so the model sees what it is used for.
-M.regex_context = 3
+--- Lines either side of a regex or an error, so the model sees what it is in.
+M.surrounding = 3
+
+--- The errors in `buf`, first line first, and the lines to send for them: a
+--- few either side, from the first error to the last, or from the first as
+--- far as ai.max_lines allows. The ones past that are still named.
+--- @return table errors
+--- @return table|nil range { first, last }, nil when there are none
+local function errors(buf, config)
+  local found = vim.diagnostic.get(buf, { severity = vim.diagnostic.severity.ERROR })
+  table.sort(found, function(a, b)
+    return a.lnum < b.lnum
+  end)
+  if #found == 0 then
+    return found, nil
+  end
+  local first = math.max(1, found[1].lnum + 1 - M.surrounding)
+  local last = math.min(vim.api.nvim_buf_line_count(buf), found[#found].lnum + 1 + M.surrounding)
+  return found, { first, math.min(last, first + config.ai.max_lines - 1) }
+end
 
 --- What a yes sends: the question, and the lines to send with it. Worked out
 --- when the bubble opens, while the cursor is still where the trigger fired.
 --- @return string question
 --- @return table|nil range { first, last }, nil for the usual function
-local function request(trigger, buf)
+local function request(trigger, buf, config)
   local ai = require("ai_klammer.ai")
   -- The regex, not the function around it: that could be any of the strings
   -- in it, or too long to send at all.
   if trigger == "regex" and buf == vim.api.nvim_get_current_buf() then
     local row = vim.api.nvim_win_get_cursor(0)[1]
-    local first = math.max(1, row - M.regex_context)
-    local last = math.min(vim.api.nvim_buf_line_count(buf), row + M.regex_context)
+    local first = math.max(1, row - M.surrounding)
+    local last = math.min(vim.api.nvim_buf_line_count(buf), row + M.surrounding)
     return ("%s The one I mean is on line %d."):format(ai.questions.regex, row), { first, last }
   end
   if trigger ~= "diagnostics" then
     return ai.questions[trigger]
   end
-  -- The diagnostics the Klammer counted are not in the code it sends, so
-  -- spell them out, from the buffer that was counted.
+  -- The code around the errors, not around the cursor: that may be a
+  -- function with nothing wrong in it, or in another buffer altogether. The
+  -- messages are not in the code, so they are spelled out, with their lines.
+  local found, range = errors(buf, config)
   local messages = vim.tbl_map(function(diagnostic)
-    return "- " .. diagnostic.message
-  end, vim.diagnostic.get(buf, { severity = vim.diagnostic.severity.ERROR }))
-  return ai.questions.diagnostics .. "\n" .. table.concat(messages, "\n")
+    return ("- line %d: %s"):format(diagnostic.lnum + 1, diagnostic.message)
+  end, found)
+  return ai.questions.diagnostics .. "\n" .. table.concat(messages, "\n"), range
 end
 
 --- @param buf? integer the buffer that set it off, the current one by default
@@ -75,7 +95,7 @@ function M.fire(trigger, count, config, buf)
     })
   end
 
-  local question, range = request(trigger, buf)
+  local question, range = request(trigger, buf, config)
   bubble.show(quips.pick(trigger, config.language, count), {
     language = config.language,
     animate = config.animate,
@@ -86,7 +106,13 @@ function M.fire(trigger, count, config, buf)
       if trigger == "git" then
         return require("ai_klammer.ai").changes(question, buf, config)
       end
-      require("ai_klammer.ai").run(question, range, config)
+      -- Wiped while the bubble waited: there is nothing left to ask about.
+      if not vim.api.nvim_buf_is_valid(buf) then
+        return
+      end
+      -- From the buffer that fired, which need not be the current one: a
+      -- range never reads the cursor, and every trigger with a range sends one.
+      require("ai_klammer.ai").run(question, range, config, range and buf or nil)
     end,
     -- Every no is counted. The round ones get said out loud, briefly.
     on_no = function()

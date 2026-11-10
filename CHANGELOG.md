@@ -11,6 +11,10 @@ All notable changes to this project are documented here. The format follows
 - The git trigger never fired with an `updatetime` under 300 ms, as in
   kickstart.nvim: the `CursorHold` right after a save replaced the pending
   `BufWritePost` in the debounce. Every event in the window now runs
+- A yes to the diagnostics trigger sent the function under the cursor,
+  which could have no errors in it or sit in another buffer altogether, as
+  after `:wa`. It now sends the lines around the errors, from the buffer
+  that was counted, and names each error with its line
 
 ## [0.7.0] — the Klammer gets to the point
 

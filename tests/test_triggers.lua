@@ -67,8 +67,8 @@ require("ai_klammer").hide()
 local ai = require("ai_klammer.ai")
 local real_run = ai.run
 local sent
-ai.run = function(question, range)
-  sent = { question = question, range = range }
+ai.run = function(question, range, _, from)
+  sent = { question = question, range = range, buf = from }
 end
 local function yes()
   vim.api.nvim_feedkeys("y", "x", false)
@@ -97,14 +97,40 @@ assert(sent.question:find("line 10", 1, true), "and which one is meant: " .. sen
 -- Diagnostics are read from the buffer that was counted, not whichever is current.
 local ns = vim.api.nvim_create_namespace("test_triggers")
 local broken = vim.api.nvim_create_buf(true, false)
-vim.api.nvim_buf_set_lines(broken, 0, -1, false, { "oops" })
+local lines = {}
+for index = 1, 60 do
+  lines[index] = "local y" .. index .. " = 1"
+end
+vim.api.nvim_buf_set_lines(broken, 0, -1, false, lines)
 vim.diagnostic.set(ns, broken, {
-  { lnum = 0, col = 0, severity = vim.diagnostic.severity.ERROR, message = "undefined global oops" },
+  { lnum = 29, col = 0, severity = vim.diagnostic.severity.ERROR, message = "undefined global later" },
+  { lnum = 19, col = 0, severity = vim.diagnostic.severity.ERROR, message = "undefined global oops" },
 })
 sent = nil
-triggers.fire("diagnostics", 1, config, broken)
+-- The cursor sits in another buffer altogether, as after :wa.
+triggers.fire("diagnostics", 2, config, broken)
 yes()
 assert(sent and sent.question:find("undefined global oops", 1, true), "the counted buffer's errors are spelled out")
+assert(sent.question:find("line 20: undefined global oops", 1, true), "with their lines: " .. sent.question)
+-- Regression: a yes sent the code around the cursor, wherever that was, and
+-- not the lines the errors are on.
+assert(sent.buf == broken, "the code comes from the counted buffer, not the current one")
+assert(vim.deep_equal(sent.range, { 17, 33 }), "the lines around the errors: " .. vim.inspect(sent.range))
+
+-- Errors too far apart to send together: the first one, and as much after it as fits.
+vim.diagnostic.set(ns, broken, {
+  { lnum = 9, col = 0, severity = vim.diagnostic.severity.ERROR, message = "early" },
+  { lnum = 59, col = 0, severity = vim.diagnostic.severity.ERROR, message = "late" },
+})
+sent = nil
+triggers.fire("diagnostics", 2, vim.tbl_deep_extend("force", config, { ai = { max_lines = 20 } }), broken)
+yes()
+assert(
+  vim.deep_equal(sent.range, { 7, 26 }),
+  "capped at ai.max_lines from the first error: " .. vim.inspect(sent.range)
+)
+assert(sent.question:find("line 60: late", 1, true), "the late one is still named")
+vim.diagnostic.reset(ns, broken)
 
 -- The git trigger's yes asks about the diff it counted, not the code under the cursor.
 local real_changes = ai.changes

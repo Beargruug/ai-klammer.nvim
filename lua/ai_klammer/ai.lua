@@ -130,10 +130,13 @@ end
 --- into the speech bubble. <Esc> or q kills the request mid-sentence.
 --- @param question string
 --- @param range? table { first, last } from a command range
-function M.run(question, range, config)
+--- @param buf? integer the buffer to read, the current one by default. Only
+--- with a range: without one the cursor picks the code, and that is the
+--- current window's.
+function M.run(question, range, config, buf)
   config = config or require("ai_klammer").config
 
-  local context, reason, count = require("ai_klammer.context.buffer").grab(0, range, config)
+  local context, reason, count = require("ai_klammer.context.buffer").grab(range and buf or 0, range, config)
   if not context then
     -- A blocklisted file is answered with silence. Saying "I will not read
     -- that" would confirm the file exists and is worth looking at.
