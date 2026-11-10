@@ -279,7 +279,11 @@ An ASCII paperclip in the corner with opinions and no help to offer.
 - Quips in English and German, cooldown and per-trigger "never again" in state
 - `:Klammer hello|show|hide|reset`, `:checkhealth ai_klammer`
 
-[unreleased]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.6.1...v0.7.0
+[0.6.1]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Beargruug/ai-klammer.nvim/compare/v0.3.0...v0.3.1
