@@ -83,6 +83,8 @@ M.defaults = {
     max_context = 150000,
     -- milliseconds without a word before a request is given up; false waits forever
     request_timeout = 60000,
+    -- answers as short as they can be: the point first, three sentences at most
+    brief = false,
   },
 }
 
@@ -133,6 +135,7 @@ function M.setup(opts)
   validate("ai.max_context", config.ai.max_context, function(limit)
     return type(limit) == "number" and limit > 0
   end, false, "a number of tokens above 0")
+  validate("ai.brief", config.ai.brief, "boolean")
   validate("ai.request_timeout", config.ai.request_timeout, function(timeout)
     return timeout == false or (type(timeout) == "number" and timeout > 0)
   end, false, "milliseconds, or false")

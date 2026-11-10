@@ -506,6 +506,15 @@ vim.wait(300, function()
 end)
 assert(not vim.api.nvim_win_is_valid(quick_win), "the answer fades once it is complete")
 
+-- ai.brief asks for the point first and little else; off by default.
+ai.send("Why?", "code", talker)
+assert(not heard[1].content:find("first sentence", 1, true), "answers are not squeezed by default")
+local terse = vim.tbl_deep_extend("force", talker, { ai = { brief = true } })
+ai.send("Why?", "code", terse)
+assert(heard[1].content:find("first sentence", 1, true), "brief puts the answer first")
+assert(heard[1].content:find(terse.ai.system, 1, true), "and keeps the Klammer's voice")
+bubble.close()
+
 -- An answer cut off at max_tokens says so under the answer, and only there.
 local clipped = vim.tbl_deep_extend("force", talker, {
   ai = {

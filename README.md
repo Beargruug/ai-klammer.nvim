@@ -77,6 +77,7 @@ require("ai_klammer").setup({
     words_per_minute = 240, -- your reading pace for "auto": lower stays longer
     max_context = 150000, -- rough tokens; a follow-up past this starts a new conversation
     request_timeout = 60000, -- ms without a word before it hangs up; false waits forever
+    brief = false, -- true: the point first, three short sentences at most, a next step if any
   },
 })
 ```

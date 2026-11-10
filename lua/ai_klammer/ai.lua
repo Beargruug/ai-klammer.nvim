@@ -355,6 +355,14 @@ local function converse(messages, config)
   end)
 end
 
+--- What ai.brief adds to the system prompt. The shape of the answer only:
+--- the Klammer's voice stays in ai.system.
+M.brief_rules = " Keep it as short as it can be and still be right."
+  .. " Lead with the answer or the fix in the first sentence."
+  .. " At most three short sentences, fewer when fewer do."
+  .. " No preamble, no recap, no closing pleasantries."
+  .. " If there is something to do, end with the one next step, concrete enough to do right now."
+
 --- Put a question and an already-assembled block of context to the model.
 --- @param question string
 --- @param body string the context, formatted and already safe to send
@@ -363,7 +371,10 @@ function M.send(question, body, config)
   converse({
     {
       role = "system",
-      content = config.ai.system .. " Answer in " .. (config.language == "de" and "German." or "English."),
+      content = config.ai.system
+        .. " Answer in "
+        .. (config.language == "de" and "German." or "English.")
+        .. (config.ai.brief and M.brief_rules or ""),
     },
     { role = "user", content = question .. "\n\n" .. body },
   }, config)

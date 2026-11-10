@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `ai.brief = true` keeps answers as short as they can be: the answer or
+  the fix first, three short sentences at most, no preamble or recap, and
+  one concrete next step when there is something to do
+
 ### Fixed
 
 - Every trigger event within 300 ms of another leaked a timer handle; the

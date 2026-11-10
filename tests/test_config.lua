@@ -25,6 +25,9 @@ assert(defaults.ai.request_timeout == 60000, "a minute of silence before giving 
 assert(config.setup({ ai = { request_timeout = false } }).ai.request_timeout == false, "or never")
 assert(not pcall(config.setup, { ai = { request_timeout = -1 } }), "but not a negative minute")
 
+assert(defaults.ai.brief == false, "answers are not squeezed by default")
+assert(not pcall(config.setup, { ai = { brief = "very" } }), "brief is a yes or a no")
+
 assert(not pcall(config.setup, { annoyance = "loud" }), "wrong type should fail")
 assert(not pcall(config.setup, { annoyance = 9 }), "out of range should fail")
 

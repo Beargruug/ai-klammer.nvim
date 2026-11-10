@@ -71,6 +71,7 @@ With lazy.nvim: >lua
       words_per_minute = 240,
       max_context = 150000,
       request_timeout = 60000,
+      brief = false,
     },
   })
 <
@@ -181,6 +182,13 @@ ai.max_context ~
     Rough token ceiling for one conversation, at four characters to the
     token. A follow-up that would pass it starts a new conversation instead.
     Default 150000; lower it for a model with a small window.
+
+ai.brief ~
+    Answers as short as they can be: the answer or the fix in the first
+    sentence, three short sentences at most, no preamble or recap, and the
+    one next step at the end when there is something to do. Only the shape
+    changes; the Klammer's voice is still `ai.system`. Shorter answers also
+    fade sooner. Off by default.
 
 ai.request_timeout ~
     Milliseconds without a word from the model before the Klammer hangs up
