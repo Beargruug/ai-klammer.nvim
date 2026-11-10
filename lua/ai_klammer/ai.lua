@@ -190,6 +190,15 @@ function M.changes(question, buf, config)
   end)
 end
 
+--- Long enough to read an answer: a few seconds to notice it is done, then
+--- the words at `words_per_minute`. The default, 240, is slow reading on
+--- purpose: code in prose is read slower than prose.
+--- @return integer ms
+function M.reading_time(text, words_per_minute)
+  local words = select(2, text:gsub("%S+", ""))
+  return 6000 + math.ceil(words * 60000 / words_per_minute)
+end
+
 --- The last answer that arrived whole, with the conversation that led to it
 --- and the bubble it is in: { messages, answer, win }. What :Klammer yank
 --- copies, and what a follow-up question continues.
@@ -246,6 +255,12 @@ local function converse(messages, config)
       complain(config, "silent")
     else
       M.last = { messages = messages, answer = answer, win = mine }
+      -- Once it is complete, not while it streams: a slow model is not a
+      -- reason to take the answer away.
+      local timeout = config.ai.answer_timeout
+      if timeout then
+        bubble.fade(mine, timeout == "auto" and M.reading_time(answer, config.ai.words_per_minute) or timeout)
+      end
       -- Faintly pleased with itself, as per the system prompt.
       require("ai_klammer.ui.avatar").react("happy")
     end

@@ -71,6 +71,8 @@ require("ai_klammer").setup({
     blocklist = { ".env", "*.pem", "*secret*", ... }, -- files it never reads
     redact = true, -- strip recognisable API keys out of the code before sending
     consent = nil, -- nil asks once and remembers; true accepts up front
+    answer_timeout = "auto", -- a finished answer fades after a reading time; ms, or false to keep it
+    words_per_minute = 240, -- your reading pace for "auto": lower stays longer
   },
 })
 ```
@@ -181,6 +183,11 @@ vim.keymap.set("n", "<leader>kc", "<cmd>Klammer close<CR>")
 
 In visual mode `:Klammer explain` becomes `:'<,'>Klammer explain` on its own, so the selection
 is what gets sent.
+
+A finished answer fades on its own once you have had time to read it, about six seconds plus
+the words at `ai.words_per_minute`. It waits while you are in it with `:Klammer focus`. Set
+`ai.answer_timeout` to a number of milliseconds instead, or `false` to keep answers until you
+close them.
 
 While an answer is still on screen, `:Klammer ask` without a selection is a follow-up: the
 code, the question and the answer go along again, so `:Klammer ask why?` means why *that*.

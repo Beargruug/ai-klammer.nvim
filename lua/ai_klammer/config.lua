@@ -74,6 +74,11 @@ M.defaults = {
     -- nil asks once before the first request and remembers the answer;
     -- true accepts up front, for a config that should never prompt
     consent = nil,
+    -- how long a finished answer stays: "auto" is long enough to read it,
+    -- a number is milliseconds, false keeps it until you close it
+    answer_timeout = "auto",
+    -- how fast you read, for answer_timeout = "auto": lower stays longer
+    words_per_minute = 240,
   },
 }
 
@@ -118,6 +123,12 @@ function M.setup(opts)
   validate("ai.blocklist", config.ai.blocklist, "table")
   validate("ai.redact", config.ai.redact, "boolean")
   validate("ai.consent", config.ai.consent, "boolean", true)
+  validate("ai.answer_timeout", config.ai.answer_timeout, function(timeout)
+    return timeout == "auto" or timeout == false or (type(timeout) == "number" and timeout > 0)
+  end, false, '"auto", milliseconds, or false')
+  validate("ai.words_per_minute", config.ai.words_per_minute, function(speed)
+    return type(speed) == "number" and speed > 0
+  end, false, "a number above 0")
   assert(
     config.annoyance >= 0 and config.annoyance <= 3,
     "ai_klammer: annoyance must be between 0 and 3, got " .. tostring(config.annoyance)

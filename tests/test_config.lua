@@ -14,6 +14,13 @@ assert(defaults.animate == true, "quips are typed in by default")
 assert(config.setup({ animate = false }).animate == false, "and that can be turned off")
 assert(not pcall(config.setup, { animate = "slowly" }), "animate is a yes or a no")
 
+assert(defaults.ai.answer_timeout == "auto", "answers fade after a reading time by default")
+assert(config.setup({ ai = { answer_timeout = false } }).ai.answer_timeout == false, "or stay")
+assert(config.setup({ ai = { answer_timeout = 5000 } }).ai.answer_timeout == 5000, "or go after a fixed time")
+assert(not pcall(config.setup, { ai = { answer_timeout = "soon" } }), "and nothing else")
+assert(config.setup({ ai = { words_per_minute = 120 } }).ai.words_per_minute == 120, "slow readers set their pace")
+assert(not pcall(config.setup, { ai = { words_per_minute = 0 } }), "a reading speed of zero never ends")
+
 assert(not pcall(config.setup, { annoyance = "loud" }), "wrong type should fail")
 assert(not pcall(config.setup, { annoyance = 9 }), "out of range should fail")
 

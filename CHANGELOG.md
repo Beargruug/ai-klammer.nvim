@@ -15,6 +15,13 @@ All notable changes to this project are documented here. The format follows
 - `:Klammer yank [reg]` copies the last whole answer into a register, the
   one a plain `y` would use by default, so `clipboard` is respected
 
+### Changed
+
+- Answers no longer stay until you close them: once complete, they fade
+  after a reading time, six seconds plus the words at `ai.words_per_minute`
+  (default 240). Never while you are in the bubble. `ai.answer_timeout`
+  takes milliseconds instead, or `false` for the old behaviour
+
 ### Fixed
 
 - The bubble stayed where it was when the editor was resized, while the

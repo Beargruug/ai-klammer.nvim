@@ -67,6 +67,8 @@ With lazy.nvim: >lua
       blocklist = { ".env", "*.pem", "*secret*", ... },
       redact = true,
       consent = nil,
+      answer_timeout = "auto",
+      words_per_minute = 240,
     },
   })
 <
@@ -161,6 +163,17 @@ ai.consent ~
     `nil` asks once, before the very first request, and remembers the answer
     in the state file. `true` accepts up front, for a config that must never
     prompt. See |ai-klammer-privacy|.
+
+ai.answer_timeout ~
+    How long a finished answer stays. `"auto"` gives you six seconds plus the
+    time to read it at `ai.words_per_minute`; a number is milliseconds;
+    `false` keeps it until you close it. While you are in the bubble with
+    |:Klammer| `focus` it never fades. The clock starts once the answer is
+    complete, never while it streams.
+
+ai.words_per_minute ~
+    Your reading pace for `answer_timeout = "auto"`. Default 240, slow on
+    purpose; lower it and answers stay longer, raise it and they go sooner.
 
 ==============================================================================
 4. COMMANDS                                               *ai-klammer-commands*
@@ -277,7 +290,8 @@ working while it talks. |:Klammer| `focus` goes in to scroll back or copy;
 the answer keeps arriving without moving your cursor, and leaving the window
 any other way than `q` leaves the bubble open. Closing the bubble, `q` or
 `<Esc>` in it or |:Klammer| `close` from anywhere, kills the request, so a
-rambling model costs nothing.
+rambling model costs nothing. A finished answer fades on its own after a
+reading time, see `ai.answer_timeout`.
 
 Saying `y` to a trigger asks the model about what the trigger found. For the
 regex trigger that is the line with the regex and three lines either side,

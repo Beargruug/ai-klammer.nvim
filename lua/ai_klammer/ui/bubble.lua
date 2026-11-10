@@ -184,6 +184,22 @@ function M.focus()
   return true
 end
 
+--- Close the bubble `target` in `ms`, unless another one has opened since.
+--- Not while you are in it: you went in to read, so it looks again `ms`
+--- later instead, and goes once you have left.
+--- @param target integer the window show() returned
+function M.fade(target, ms)
+  vim.defer_fn(function()
+    if win ~= target or not M.is_open() then
+      return
+    end
+    if vim.api.nvim_get_current_win() == target then
+      return M.fade(target, ms)
+    end
+    M.close()
+  end, ms)
+end
+
 --- The Klammer stays put; the bubble only changes its mood.
 --- @param text string
 --- @param opts? table { language, mood, buttons, focus, timeout, animate, on_yes, on_no, on_never, on_close }
@@ -275,7 +291,7 @@ function M.show(text, opts)
   })
   -- The timeout starts once the text is all there, or a long quip fades half-read.
   if opts.timeout then
-    vim.defer_fn(close_this, opts.timeout + typing_time)
+    M.fade(win, opts.timeout + typing_time)
   end
   return win
 end

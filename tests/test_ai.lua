@@ -401,6 +401,27 @@ assert(vim.fn.getreg("a") == "Answer to 2", "or the one named")
 klammer.config = real_config
 bubble.close()
 
+-- A finished answer fades after a reading time; at a slower pace it stays longer.
+assert(ai.reading_time("one two three four", 240) == 7000, "four words at 240 a minute is a second, plus six")
+assert(ai.reading_time("one two three four", 120) == 8000, "half the pace, twice the reading")
+local quick = vim.tbl_deep_extend("force", talker, { ai = { answer_timeout = 50 } })
+ai.last = nil
+ai.send("Quick?", "code", quick)
+answered("Answer to 2")
+local quick_win = ai.last.win
+vim.wait(300, function()
+  return not vim.api.nvim_win_is_valid(quick_win)
+end)
+assert(not vim.api.nvim_win_is_valid(quick_win), "the answer fades once it is complete")
+
+local stays = vim.tbl_deep_extend("force", talker, { ai = { answer_timeout = false } })
+ai.last = nil
+ai.send("Stay?", "code", stays)
+answered("Answer to 2")
+vim.wait(100)
+assert(vim.api.nvim_win_is_valid(ai.last.win), "answer_timeout = false keeps it")
+bubble.close()
+
 -- The claude CLI takes one prompt, so a conversation is spelled out turn by turn.
 local system, prompt = claude.prompt({
   { role = "system", content = "Be a paperclip." },

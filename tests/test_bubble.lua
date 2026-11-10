@@ -156,6 +156,29 @@ vim.wait(300)
 assert(vim.api.nvim_win_is_valid(slow), "still open: the timeout starts after the typing")
 bubble.close()
 
+-- fade closes the bubble it was given, not one that opened since, and
+-- waits while you are in it.
+local fading = bubble.show("Going.", { language = "en", focus = false })
+bubble.fade(fading, 50)
+vim.wait(150)
+assert(not vim.api.nvim_win_is_valid(fading), "it fades")
+
+local old = bubble.show("Old.", { language = "en", focus = false })
+bubble.fade(old, 50)
+local new = bubble.show("New.", { language = "en", focus = false })
+vim.wait(150)
+assert(vim.api.nvim_win_is_valid(new), "a newer bubble is left alone")
+
+bubble.fade(new, 50)
+bubble.focus()
+vim.wait(150)
+assert(vim.api.nvim_win_is_valid(new), "not while you are reading it")
+vim.api.nvim_set_current_win(editor)
+vim.wait(150, function()
+  return not vim.api.nvim_win_is_valid(new)
+end)
+assert(not vim.api.nvim_win_is_valid(new), "and once you leave, it goes")
+
 -- Wrapping counts display cells, not bytes: "ä" is two bytes and one column.
 local umlauts = bubble.wrap("äää äää äää", 11)
 assert(#umlauts == 1, "eleven columns fit on one line: " .. vim.inspect(umlauts))
