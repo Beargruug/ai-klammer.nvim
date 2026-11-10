@@ -257,7 +257,7 @@ It narrows the obvious accidents.
 | Trigger       | When                                                          |
 | ------------- | ------------------------------------------------------------- |
 | `regex`       | A regex-looking literal under the cursor on `CursorHold`       |
-| `git`         | `git diff --shortstat HEAD` over `git_lines` on save           |
+| `git`         | Over `git_lines` changed lines against `HEAD`, on save         |
 | `diagnostics` | `diagnostics_count` errors or more in the buffer               |
 | `idle`        | Nothing at all — every so often it just says something useless |
 

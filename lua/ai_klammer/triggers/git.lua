@@ -3,28 +3,28 @@ local M = {}
 M.name = "git"
 M.events = { "BufWritePost" }
 
---- "3 files changed, 412 insertions(+), 18 deletions(-)" -> 430
-function M.changed_lines(shortstat)
-  local total = 0
-  for count in shortstat:gmatch("(%d+) [id]") do
-    total = total + tonumber(count)
+--- Lines added and removed, from `git diff --numstat -z`, minus every file
+--- `blocked` refuses. A binary file counts nothing; a rename counts under
+--- its new name, which -z prints after an empty path and the old one.
+--- @param numstat string
+--- @param blocked fun(path: string): boolean given the path from the root
+--- @return integer
+function M.changed_lines(numstat, blocked)
+  local fields = vim.split(numstat, "\0", { plain = true })
+  local total, index = 0, 1
+  while index <= #fields do
+    local added, deleted, path = fields[index]:match("^(%S+)\t(%S+)\t(.*)$")
+    index = index + 1
+    if added then
+      if path == "" then
+        path, index = fields[index + 1] or "", index + 2
+      end
+      if not blocked(path) then
+        total = total + (tonumber(added) or 0) + (tonumber(deleted) or 0)
+      end
+    end
   end
   return total
-end
-
-function M.check(buf, config, done)
-  local file = vim.api.nvim_buf_get_name(buf)
-  local dir = vim.fs.dirname(file)
-  if file == "" or vim.fn.isdirectory(dir) == 0 then
-    return done(nil)
-  end
-  vim.system({ "git", "diff", "--shortstat", "HEAD" }, { cwd = dir, text = true }, function(result)
-    if result.code ~= 0 then
-      return done(nil)
-    end
-    local total = M.changed_lines(result.stdout or "")
-    done(total >= config.git_lines and total or nil)
-  end)
 end
 
 --- Run git, and hand its output to `callback` on the main loop, nil if it failed.
@@ -32,6 +32,30 @@ local function git(args, cwd, callback)
   vim.system(vim.list_extend({ "git" }, args), { cwd = cwd, text = true }, function(result)
     vim.schedule(function()
       callback(result.code == 0 and result.stdout or nil)
+    end)
+  end)
+end
+
+--- Big enough to speak up about, counting only what a yes would send: a
+--- large .env change is not a diff the Klammer could ever explain. From the
+--- top of the repository, because that is where git's paths start.
+function M.check(buf, config, done)
+  local file = vim.api.nvim_buf_get_name(buf)
+  local dir = vim.fs.dirname(file)
+  if file == "" or vim.fn.isdirectory(dir) == 0 then
+    return done(nil)
+  end
+  local secrets = require("ai_klammer.context.secrets")
+  git({ "rev-parse", "--show-toplevel" }, dir, function(top)
+    if not top then
+      return done(nil)
+    end
+    top = vim.trim(top)
+    git({ "diff", "--numstat", "-z", "HEAD" }, top, function(numstat)
+      local total = M.changed_lines(numstat or "", function(path)
+        return secrets.blocked(top .. "/" .. path, config)
+      end)
+      done(total >= config.git_lines and total or nil)
     end)
   end)
 end

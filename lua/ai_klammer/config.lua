@@ -17,7 +17,7 @@ M.defaults = {
     "TelescopePrompt",
     "ai_klammer",
   },
-  -- git diff --shortstat threshold, in changed lines
+  -- changed lines against HEAD, blocklisted files not counted
   git_lines = 300,
   -- how many errors in the buffer before the Klammer comments
   diagnostics_count = 5,

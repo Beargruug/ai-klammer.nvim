@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The git trigger counted lines in blocklisted files, so a big `.env`
+  change offered to explain a diff it would then refuse to send. It now
+  counts only what a yes would send
+
 ## [0.8.0] — the Klammer sticks to English
 
 ### Removed

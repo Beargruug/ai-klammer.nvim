@@ -9,8 +9,13 @@ assert(regex.looks_like_regex([[const re = /^[a-z0-9._%+-]+@[a-z0-9.-]+$/i]]), "
 assert(not regex.looks_like_regex([[local msg = "hello (world)"]]), "plain prose should not")
 assert(not regex.looks_like_regex([[if (a[0] + b[1]) then return c(d) end]]), "code without literals should not")
 
-assert(git.changed_lines(" 3 files changed, 412 insertions(+), 18 deletions(-)\n") == 430, "insertions + deletions")
-assert(git.changed_lines("") == 0, "no diff is zero lines")
+local never = function()
+  return false
+end
+assert(git.changed_lines("400\t12\ta.lua\0000\t18\tb.lua\0", never) == 430, "added + deleted, every file")
+assert(git.changed_lines("", never) == 0, "no diff is zero lines")
+assert(git.changed_lines("-\t-\timage.png\0", never) == 0, "a binary file has no lines")
+assert(git.changed_lines("3\t1\t\0old.lua\0new.lua\0", never) == 4, "a rename counts under its new name")
 
 local config = require("ai_klammer.config").setup()
 local buf = vim.api.nvim_create_buf(false, true)
@@ -245,6 +250,35 @@ vim.wait(5000, function()
   return finished
 end)
 assert(diff == nil, "only blocked files changed means nothing to show")
+
+-- Regression: the trigger counted every changed line, blocked files
+-- included, so a big .env change offered to explain a diff it would then
+-- refuse to send. It counts what a yes would send, and nothing else.
+local function count(threshold)
+  local file = vim.api.nvim_create_buf(true, false)
+  vim.api.nvim_buf_set_name(file, repo .. "/a.lua")
+  local result, called = "unset", false
+  git.check(file, vim.tbl_extend("force", config, { git_lines = threshold }), function(total)
+    result, called = total, true
+  end)
+  vim.wait(5000, function()
+    return called
+  end)
+  vim.api.nvim_buf_delete(file, { force = true })
+  return result
+end
+local secrets_env = {}
+for index = 1, 50 do
+  secrets_env[index] = "TOKEN" .. index .. "=new"
+end
+vim.fn.writefile(secrets_env, repo .. "/.env")
+assert(count(10) == nil, "fifty lines of .env are not a big diff")
+vim.fn.writefile({ "local a = 2", "local b = 3" }, repo .. "/a.lua")
+assert(count(1) == 3, "a.lua alone counts, one line out and two in: " .. tostring(count(1)))
+-- Spaces and quotes in a name, which plain --numstat would escape.
+vim.fn.writefile({ "x" }, repo .. '/odd "name".lua')
+sh("git", "add", "-N", 'odd "name".lua')
+assert(count(1) == 4, "an unusual name counts too: " .. tostring(count(1)))
 vim.fn.delete(repo, "rf")
 
 print("ok")

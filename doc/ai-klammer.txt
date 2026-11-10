@@ -97,7 +97,8 @@ ignore_filetypes ~
     always skipped.
 
 git_lines ~
-    Changed lines against HEAD before the big-diff quip fires.
+    Changed lines against HEAD before the big-diff quip fires. Lines in
+    files matching `ai.blocklist` do not count: they would not be sent.
 
 diagnostics_count ~
     Buffer errors before the diagnostics quip fires.
@@ -246,9 +247,9 @@ regex ~
     more regex metacharacters.
 
 git ~
-    |BufWritePost|. `git diff --shortstat HEAD` in the file's directory,
-    run asynchronously. Fires above `git_lines` changed lines. Saying yes
-    sends that diff, every changed file except those in `ai.blocklist`,
+    |BufWritePost|. `git diff --numstat HEAD` across the file's repository,
+    run asynchronously. Fires above `git_lines` changed lines, not counting
+    blocklisted files. Saying yes sends that diff, every changed file except those in `ai.blocklist`,
     with a `--stat` header and cut off after `ai.max_lines` lines.
 
 diagnostics ~
