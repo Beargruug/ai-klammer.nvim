@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] — the Klammer knows when to hang up
+
 ### Added
 
 - `ai.request_timeout` (default 60000 ms): a request that goes that long
