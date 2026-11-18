@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `:Klammer chat [q]` asks without sending any code, for questions that
+  have nothing to do with the buffer
+
 ### Changed
 
 - The resting face is `◐  ◐` instead of `@  @`. With `ambiwidth=double`
@@ -13,6 +18,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A question unrelated to the code got an answer about the code anyway: the
+  code under the cursor always goes along, and nothing said it might be
+  beside the point. The model is now told the code is context, not
+  necessarily the topic
 - The git trigger counted lines in blocklisted files, so a big `.env`
   change offered to explain a diff it would then refuse to send. It now
   counts only what a yes would send

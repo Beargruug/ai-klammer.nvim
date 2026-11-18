@@ -216,7 +216,8 @@ function M.forget()
 end
 
 --- Stream a conversation into a fresh bubble in the corner.
-local function converse(messages, config)
+--- @param chat? boolean no code in it, so a :Klammer chat may continue it
+local function converse(messages, config, chat)
   local provider = M.resolve(config)
   if not provider then
     return complain(config, "no_provider", tostring(config.ai.provider))
@@ -304,7 +305,7 @@ local function converse(messages, config)
     elseif vim.trim(answer) == "" then
       complain(config, "silent")
     else
-      M.last = { messages = messages, answer = answer, win = mine, buf = asked_from, open = true }
+      M.last = { messages = messages, answer = answer, win = mine, buf = asked_from, open = true, chat = chat }
       table.insert(M.history, 1, M.last)
       for index = #M.history, M.history_size + 1, -1 do
         M.history[index] = nil
@@ -343,18 +344,37 @@ M.brief_rules = " Keep it as short as it can be and still be right."
   .. " No preamble, no recap, no closing pleasantries."
   .. " If there is something to do, end with the one next step, concrete enough to do right now."
 
+--- What every question with code attached adds to the system prompt. The
+--- code goes along whatever the question is, so without this the model reads
+--- "what is a monad?" as a question about the function under the cursor.
+--- Here and not in ai.system, so a custom voice keeps it.
+M.context_rule = " The code that comes with a question is context, not necessarily the topic."
+  .. " If the question is not about that code, answer the question and leave the code out of it."
+
+local function system(config, rules)
+  return {
+    role = "system",
+    content = config.ai.system .. " Answer in English." .. rules .. (config.ai.brief and M.brief_rules or ""),
+  }
+end
+
 --- Put a question and an already-assembled block of context to the model.
 --- @param question string
 --- @param body string the context, formatted and already safe to send
 function M.send(question, body, config)
   config = config or require("ai_klammer").config
   converse({
-    {
-      role = "system",
-      content = config.ai.system .. " Answer in English." .. (config.ai.brief and M.brief_rules or ""),
-    },
-    { role = "user", content = question .. "\n\n" .. body },
+    system(config, M.context_rule),
+    { role = "user", content = question .. "\n\nAttached as context:\n" .. body },
   }, config)
+end
+
+--- Put a question to the model with no code at all: for whatever has nothing
+--- to do with the buffer, and should not take a slice of it along.
+--- @param question string
+function M.chat(question, config)
+  config = config or require("ai_klammer").config
+  converse({ system(config, ""), { role = "user", content = question } }, config, true)
 end
 
 --- A question continues the last conversation until you end it: q, <Esc> or
@@ -395,7 +415,7 @@ function M.follow_up(question, config)
     { role = "assistant", content = M.last.answer },
     { role = "user", content = question },
   })
-  converse(messages, config)
+  converse(messages, config, M.last.chat)
 end
 
 --- What an answer was to, for a list: the first line of the last question.

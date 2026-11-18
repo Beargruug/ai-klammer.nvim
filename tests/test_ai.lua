@@ -186,6 +186,10 @@ local spy = require("ai_klammer.config").setup({
 vim.api.nvim_win_set_cursor(0, { 2, 0 })
 ai.run("Why?", nil, spy)
 assert(sent[2].content:find("a whole function", 1, true), "the prompt says what kind of snippet it is")
+-- The code goes along with every question, so the model has to be told it
+-- may be beside the point, or it works the code into "what is a monad?".
+assert(sent[1].content:find(ai.context_rule, 1, true), "the system prompt says the code is context, not the topic")
+assert(sent[2].content:find("^Why%?\n\nAttached as context:\n"), "and the code comes labelled as such")
 require("ai_klammer").hide()
 
 -- Asking never takes the cursor: the answer streams into the corner while
@@ -485,6 +489,31 @@ end)
 assert(#heard == 2, "past the limit, the follow-up is sent as a new question: " .. #heard)
 klammer.config = talker
 assert(not pcall(require("ai_klammer.config").setup, { ai = { max_context = 0 } }), "a limit of zero is refused")
+
+-- :Klammer chat sends the question and nothing from the buffer.
+ai.last = nil
+klammer.chat("What is a monad?")
+assert(answered("Answer to 2") == "Answer to 2", "a chat is two messages")
+assert(heard[2].content == "What is a monad?", "the question alone, no code: " .. heard[2].content)
+assert(not heard[1].content:find(ai.context_rule, 1, true), "and no talk of attached code")
+assert(heard[1].content:find(talker.ai.system, 1, true), "in the Klammer's voice all the same")
+klammer.chat("And a functor?")
+assert(answered("Answer to 4") == "Answer to 4", "a chat follows up a chat")
+klammer.ask("Why?")
+assert(answered("Answer to 6") == "Answer to 6", "and so does an ask, on a chat answer")
+assert(heard[2].content == "What is a monad?" and heard[6].content == "Why?", "with no code added along the way")
+
+-- A chat never continues a code answer: that would send the code again.
+klammer.ask("What is this?", { 1, 3 })
+vim.wait(500, function()
+  return ai.last ~= nil and not ai.last.chat
+end)
+assert(ai.can_follow_up(), "the code answer is open")
+klammer.chat("What is a monad?")
+assert(#heard == 2 and heard[2].content == "What is a monad?", "the chat starts over without it: " .. #heard)
+vim.wait(500, function()
+  return ai.last ~= nil and ai.last.chat == true
+end)
 
 klammer.yank()
 assert(vim.fn.getreg('"') == "Answer to 2", "yank copies the last answer into the unnamed register")

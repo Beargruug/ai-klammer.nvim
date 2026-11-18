@@ -223,6 +223,11 @@ ai.request_timeout ~
                         first through |vim.ui.input()|. Without a range,
                         after an answer, {q} is a follow-up to it. See
                         |ai-klammer-follow-up|.
+:Klammer chat {q}       Ask {q} without sending any code, for anything that
+                        is not about the buffer. Without {q} it asks you
+                        first through |vim.ui.input()|. After a chat answer,
+                        {q} is a follow-up to it; after a code answer it
+                        starts over, so that code does not go again.
 :Klammer project {q}    Ask {q} about the whole repository instead of the
                         buffer. See |ai-klammer-project|. Without {q} it asks
                         you first through |vim.ui.input()|.
@@ -335,6 +340,11 @@ that. The answer fading away does not end it. These do:
     - asking from another buffer than the one the conversation began in
     - the conversation passing `ai.max_context` tokens: every follow-up sends
       all of it again, so past the limit the question starts a new one
+
+The code goes along with every `ask`, whatever the question. The model is
+told it is context, not necessarily the topic, so "what is a monad?" is
+answered without the function under the cursor worked into it. To send no
+code at all, use |:Klammer| `chat`.
 
 |:Klammer| `last` shows the last answer again and `history` picks one of the
 last ten; either picks its conversation back up, in the buffer you are in.

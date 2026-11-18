@@ -91,6 +91,20 @@ function M.ask(question, range)
   end)
 end
 
+--- Put a question to the Klammer with no code attached, for anything that is
+--- not about the buffer. Continues the answer on screen only when that one
+--- was a chat too: following up a code answer would send its code again.
+--- @param question? string
+function M.chat(question)
+  asked("Klammer, no code: ", question, function(input)
+    local ai = require("ai_klammer.ai")
+    if ai.can_follow_up() and ai.last.chat and ai.fits(input, M.config) then
+      return ai.follow_up(input, M.config)
+    end
+    ai.chat(input, M.config)
+  end)
+end
+
 --- Copy the last whole answer into a register: the one named, or the one a
 --- plain y would use, so 'clipboard' is respected.
 --- @param register? string

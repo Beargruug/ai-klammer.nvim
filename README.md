@@ -200,6 +200,11 @@ the answer fading away. It starts over when you close the answer yourself (`q`, 
 `:Klammer close`), select code, run `:Klammer explain`, or ask from another buffer, and once it
 passes `ai.max_context` tokens (150k by default), since every follow-up sends all of it again.
 
+The code goes along with every `:Klammer ask`, but the model is told it is context, not
+necessarily the topic, so an unrelated question gets an answer without the code dragged into it.
+`:Klammer chat` sends no code at all: just the question, for anything that has nothing to do
+with the buffer. A chat follows up a chat, never a code answer, so its code does not go again.
+
 Missed something? `:Klammer last` shows the last answer again, `:Klammer history` picks one of
 the last ten, and either one picks its conversation back up. `:Klammer yank` copies the last
 answer into the register a plain `y` would use, or `:Klammer yank +` into the one you name.
@@ -305,6 +310,7 @@ again" choices. `:Klammer reset` does not touch it; delete the file to make it f
 | `:Klammer reset`          | Forget every "never again" and the cooldown              |
 | `:[range]Klammer explain` | Explain the selection, the function, or the lines nearby |
 | `:[range]Klammer ask [q]` | Ask anything about that code; prompts without `q`        |
+| `:Klammer chat [q]`       | Ask without sending any code; prompts without `q`        |
 | `:Klammer project [q]`    | Ask about the whole repository; ripgrep finds the files  |
 
 Answering a bubble closes the bubble only — the paperclip stays. `annoyance = 0` keeps it off
